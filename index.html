@@ -118,8 +118,8 @@ main{padding:20px 0 90px;min-height:70vh}
 @media(min-width:880px){.grid2{grid-template-columns:1.25fr 1fr}}
 .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:14.5px;font-variant-numeric:tabular-nums}
-.tbl th{font-weight:600;font-size:12.5px;color:var(--ink-3);text-align:right;padding:9px 8px;background:var(--surface-2);border-bottom:1px solid var(--rule);white-space:nowrap}
-.tbl td{padding:9px 8px;text-align:right;border-bottom:1px solid var(--rule);white-space:nowrap}
+.tbl th{font-weight:600;font-size:12.5px;color:var(--ink-3);text-align:center;padding:9px 8px;background:var(--surface-2);border-bottom:1px solid var(--rule);white-space:nowrap}
+.tbl td{padding:9px 8px;text-align:center;border-bottom:1px solid var(--rule);white-space:nowrap}
 .tbl tr:last-child td{border-bottom:0}
 .tbl th.l,.tbl td.l{text-align:left}
 .tbl .c-rank{width:38px;min-width:38px;text-align:center;position:sticky;left:0;background:var(--surface);z-index:1}
@@ -340,6 +340,29 @@ dialog .df{display:flex;gap:8px;justify-content:flex-end;padding:12px 18px 16px;
   .tbl .row-actions{flex-direction:column}
 }
 
+/* v3: jadval markazda, kartochkalar, media, tile */
+.tbl .sh{display:none}
+@media(max-width:700px){.tbl .lg{display:none}.tbl .sh{display:inline}}
+.foot-note.legend{border-top:1px solid var(--rule)}
+.tile.pend{background:#ffffff0a;border-style:dashed}
+.tile.pend .ln b{color:var(--on-board-2);opacity:.6}
+.tile.pend .ln .tn{color:#fff}
+.grid2e{display:grid;grid-template-columns:1fr;gap:22px}
+@media(min-width:880px){.grid2e{grid-template-columns:1fr 1fr}}
+.sub-h{font-size:18px;margin:0 0 8px;display:flex;align-items:center;gap:8px}
+.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.vcard{background:var(--surface);border:1px solid var(--rule);border-radius:12px;overflow:hidden}
+.vthumb{position:relative;display:block;aspect-ratio:16/9;background:var(--board);color:var(--on-board)}
+.vthumb img{width:100%;height:100%;object-fit:cover;display:block}
+.vph{position:absolute;inset:0;display:grid;place-items:center;font:600 22px var(--f-display);color:var(--on-board-2)}
+.vplay{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:#000a;border:2px solid #fff}
+.vplay::after{content:"";position:absolute;left:21px;top:15px;border-left:17px solid #fff;border-top:11px solid transparent;border-bottom:11px solid transparent}
+.vinfo{padding:10px 12px 12px;display:flex;flex-direction:column;gap:2px}
+.vinfo small{color:var(--ink-3)}
+
+.tbl td{vertical-align:middle}
+.tbl .tl{vertical-align:middle}
+
 .linkbtn{background:none;border:0;padding:0;color:var(--ink-2);font:inherit;font-weight:600;text-decoration:underline;cursor:pointer}
 .fauth{color:var(--ink-3)}
 </style>
@@ -388,6 +411,7 @@ function cyrDom(root){
 const $q=(s,r)=>(r||document).querySelector(s);
 const $qa=(s,r)=>[...(r||document).querySelectorAll(s)];
 let S=JSON.parse(document.getElementById('state').textContent);
+S.videos=Array.isArray(S.videos)?S.videos:[];
 let IDX={t:new Map(),p:new Map(),m:new Map()};
 function reindex(){IDX.t=new Map(S.teams.map(t=>[t.id,t]));IDX.p=new Map(S.players.map(p=>[p.id,p]));IDX.m=new Map(S.matches.map(m=>[m.id,m]))}
 reindex();
@@ -455,7 +479,7 @@ function breakTies(grp,done){
 /* futbolchi statistikasi va intizom */
 function discipline(){
   const R=S.rules,per=new Map(),violations=[];
-  S.players.forEach(p=>per.set(p.id,{p,g:+p.g0||0,og:0,y:0,r:0,yc:0,ban:0,banned:0,apps:+p.a0||0}));
+  S.players.forEach(p=>per.set(p.id,{p,g:+p.g0||0,as:+p.as0||0,og:0,y:0,r:0,yc:0,ban:0,banned:0,apps:+p.a0||0}));
   const byTeam=new Map();S.players.forEach(p=>{(byTeam.get(p.tid)||byTeam.set(p.tid,[]).get(p.tid)).push(p)});
   const done=S.matches.filter(m=>m.status==='played').sort(chrono);
   for(const m of done){
@@ -466,7 +490,7 @@ function discipline(){
     for(const e of m.ev||[]){
       const d=per.get(e.p);if(!d)continue;
       if(bannedNow.has(e.p)&&!violations.some(v=>v.m===m.id&&v.p===e.p))violations.push({m:m.id,p:e.p});
-      if(e.t==='g')d.g++;else if(e.t==='og')d.og++;
+      if(e.t==='g')d.g++;else if(e.t==='og')d.og++;else if(e.t==='a')d.as++;
       else if(e.t==='y'){d.y++;d.yc++;if(R.yellowBan>0&&d.yc%R.yellowBan===0)d.ban++}
       else if(e.t==='r'){d.r++;d.ban+=R.redBan}
     }
@@ -485,9 +509,15 @@ function roundsInfo(){
   return {total,list,last,current:open?open.r:(last||1),next:open?open.r:0};
 }
 function teamNext(tid){return S.matches.filter(m=>(m.status==='scheduled')&&(m.home===tid||m.away===tid)).sort(chrono)[0]||null}
-function topScorers(per){
+function rankPlayers(per,key){
   const rk=new Map(standings().map(r=>[r.id,r.rank])),ix=new Map(S.players.map((p,i)=>[p.id,i]));
-  return [...per.values()].filter(d=>d.g>0).sort((a,b)=>b.g-a.g||a.apps-b.apps||(rk.get(a.p.tid)||99)-(rk.get(b.p.tid)||99)||ix.get(a.p.id)-ix.get(b.p.id));
+  return [...per.values()].filter(d=>d[key]>0).sort((a,b)=>b[key]-a[key]||a.apps-b.apps||(rk.get(a.p.tid)||99)-(rk.get(b.p.tid)||99)||ix.get(a.p.id)-ix.get(b.p.id));
+}
+const topScorers=(per)=>rankPlayers(per,'g');
+const topAssists=(per)=>rankPlayers(per,'as');
+function cardList(per,key){
+  const ix=new Map(S.players.map((p,i)=>[p.id,i]));
+  return [...per.values()].filter(d=>d[key]>0).sort((a,b)=>b[key]-a[key]||a.apps-b.apps||ix.get(a.p.id)-ix.get(b.p.id));
 }
 function rankWith(list,key){let rk=0,prev=null,i=0;return list.map(x=>{i++;if(x[key]!==prev){rk=i;prev=x[key]}return {x,rk}})}
 function checks(){
@@ -553,36 +583,45 @@ function groupByDate(ms,opt){
   return h;
 }
 function tile(m){
-  const H=team(m.home),A=team(m.away),sc=mScore(m);if(!H||!A||!sc)return '';
-  return `<a class="tile" href="#oyin-${m.id}"><div class="ln ${sc[0]>sc[1]?'w':''}"><span class="tn">${crest(H,'sm')}<bdi>${esc(H.name)}</bdi></span><b>${sc[0]}</b></div><div class="ln ${sc[1]>sc[0]?'w':''}"><span class="tn">${crest(A,'sm')}<bdi>${esc(A.name)}</bdi></span><b>${sc[1]}</b></div><div class="foot">${m.date?fmtD(m.date):m.round+'-tur'}${m.status==='tech'?' — texnik natija':''}</div></a>`;
+  const H=team(m.home),A=team(m.away),sc=mScore(m);if(!H||!A)return '';
+  const when=(m.date?fmtD(m.date):'')+(m.time?(m.date?', ':'')+esc(m.time):'');
+  const foot=sc?((m.date?fmtD(m.date):m.round+'-tur')+(m.status==='tech'?' — texnik natija':'')):((m.status==='postponed'?'Kechiktirilgan':(when||'Vaqti belgilanmagan'))+(m.venue?', '+D(m.venue):''));
+  return `<a class="tile ${sc?'':'pend'}" href="#oyin-${m.id}"><div class="ln ${sc&&sc[0]>sc[1]?'w':''}"><span class="tn">${crest(H,'sm')}<bdi>${esc(H.name)}</bdi></span><b>${sc?sc[0]:'–'}</b></div><div class="ln ${sc&&sc[1]>sc[0]?'w':''}"><span class="tn">${crest(A,'sm')}<bdi>${esc(A.name)}</bdi></span><b>${sc?sc[1]:'–'}</b></div><div class="foot">${foot}</div></a>`;
 }
+const LS=(l,s)=>`<span class="lg">${l}</span><span class="sh">${s}</span>`;
 function stdTable(rows,opt){
   opt=opt||{};const full=!!opt.full;
   const head=full
-   ?`<th class="c-rank">T/r</th><th class="c-team l">Jamoa</th><th title="O‘yinlar">O‘yin</th><th class="hm" title="G‘alaba">G‘</th><th class="hm" title="Durang">D</th><th class="hm" title="Mag‘lubiyat">M</th><th title="Urilgan va o‘tkazib yuborilgan gollar">To‘plar</th><th class="hm" title="Gol farqi">Farq</th><th title="Ochko">Ochko</th><th class="l hm">Shakl</th>`
-   :`<th class="c-rank">T/r</th><th class="c-team l">Jamoa</th><th title="O‘yinlar">O‘yin</th><th title="Urilgan va o‘tkazib yuborilgan gollar">To‘plar</th><th title="Ochko">Ochko</th>`;
+   ?`<th class="c-rank">T/r</th><th class="c-team l">Jamoa</th><th>O‘yin</th><th title="G‘alaba">${LS('G‘alaba','G‘')}</th><th title="Durang">${LS('Durang','D')}</th><th title="Mag‘lubiyat">${LS('Mag‘lubiyat','M')}</th><th title="Urilgan va o‘tkazib yuborilgan gollar">To‘plar</th><th class="hm" title="Gol farqi">Farq</th><th title="Ochko">Ochko</th><th class="hm">Shakl</th>`
+   :`<th class="c-rank">T/r</th><th class="c-team l">Jamoa</th><th>O‘yin</th><th title="G‘alaba">G‘</th><th title="Durang">D</th><th title="Mag‘lubiyat">M</th><th title="Urilgan va o‘tkazib yuborilgan gollar">To‘plar</th><th title="Ochko">Ochko</th>`;
   const body=rows.map(r=>{
     const gd=(r.gd>0?'+':'')+r.gd;
     const pen=r.pen?`<span class="pen" title="Jarima ochko">−${r.pen}</span>`:'';
-    const form=full?`<td class="l hm"><span class="form">${r.form.slice(-5).map(f=>`<i class="${f}" title="${f==='w'?'G‘alaba':f==='d'?'Durang':'Mag‘lubiyat'}">${f==='w'?'G':f==='d'?'D':'M'}</i>`).join('')}</span></td>`:'';
-    return `<tr class="${r.rank===1&&r.p>0?'lead':''}"><td class="c-rank">${r.rank}</td><td class="c-team">${tlink(r.t)}</td><td>${r.p}</td>`+
-      (full?`<td class="hm">${r.w}</td><td class="hm">${r.d}</td><td class="hm">${r.l}</td>`:'')+
-      `<td>${r.gf} − ${r.ga}</td>`+(full?`<td class="hm">${gd}</td>`:'')+`<td class="pts">${r.pts}${pen}</td>${form}</tr>`;
+    const form=full?`<td class="hm"><span class="form">${r.form.slice(-5).map(f=>`<i class="${f}" title="${f==='w'?'G‘alaba':f==='d'?'Durang':'Mag‘lubiyat'}">${f==='w'?'G':f==='d'?'D':'M'}</i>`).join('')}</span></td>`:'';
+    return `<tr class="${r.rank===1&&r.p>0?'lead':''}"><td class="c-rank">${r.rank}</td><td class="c-team">${tlink(r.t)}</td><td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td>${r.gf} − ${r.ga}</td>`+(full?`<td class="hm">${gd}</td>`:'')+`<td class="pts">${r.pts}${pen}</td>${form}</tr>`;
   }).join('');
   return `<div class="scroll"><table class="tbl"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
+const stdLegend=()=>`<div class="foot-note legend"><p>G‘ — g‘alaba, D — durang, M — mag‘lubiyat</p></div>`;
 function stdNotes(){
   const R=S.rules;
   const tb={h2hPoints:'o‘zaro o‘yinlardagi ochko',h2hGD:'o‘zaro o‘yinlardagi gol farqi',h2hGF:'o‘zaro o‘yinlarda urilgan gol',gd:'umumiy gol farqi',gf:'umumiy urilgan gol'};
-  let h=`<p>Ochko: g‘alaba ${R.win}, durang ${R.draw}, mag‘lubiyat ${R.loss}. Ochkolar teng bo‘lsa: ${R.tiebreak.map(x=>tb[x]).join(', ')}.</p>`;
+  let h=`<p>G‘alaba — yutgan o‘yinlar, durang — durang o‘yinlar, mag‘lubiyat — yutqazilgan o‘yinlar. Ochko: g‘alaba ${R.win}, durang ${R.draw}, mag‘lubiyat ${R.loss}. Ochkolar teng bo‘lsa: ${R.tiebreak.map(x=>tb[x]).join(', ')}.</p>`;
   S.penalties.forEach(j=>{const t=team(j.tid);if(t)h+=`<p>Jarima: ${D(t.name)} — −${esc(j.pts)} ochko${j.reason?` (${D(j.reason)}${j.date?', '+fmtD(j.date):''})`:''}.</p>`});
   return `<div class="foot-note">${h}</div>`;
 }
-function scorersTable(list,limit){
+function scorersTable(list,limit,key){
+  key=key||'g';const lab=key==='as'?'Assist':'Gol';
   const rows=list.slice(0,limit||list.length);
-  if(!rows.length)return `<div class="empty">Hozircha gol urilmagan.</div>`;
-  return `<div class="scroll"><table class="tbl"><thead><tr><th class="c-rank">T/r</th><th class="c-team l">O‘yinchi</th><th class="l hm">Jamoa</th><th>O‘yin</th><th>Gol</th></tr></thead><tbody>${rows.map((x,i)=>{const t=team(x.p.tid);return `<tr><td class="c-rank">${i+1}</td><td class="c-team">${plink(x.p)}<span class="sub-m">${D(t?t.name:'')}</span></td><td class="l hm">${tlink(t)}</td><td>${x.apps}</td><td class="pts">${x.g}</td></tr>`}).join('')}</tbody></table></div>`;
+  if(!rows.length)return `<div class="empty">${key==='as'?'Hozircha assist qayd etilmagan.':'Hozircha gol urilmagan.'}</div>`;
+  return `<div class="scroll"><table class="tbl"><thead><tr><th class="c-rank">T/r</th><th class="c-team l">O‘yinchi</th><th class="l hm">Jamoa</th><th>O‘yin</th><th>${lab}</th></tr></thead><tbody>${rows.map((x,i)=>{const t=team(x.p.tid);return `<tr><td class="c-rank">${i+1}</td><td class="c-team">${plink(x.p)}<span class="sub-m">${D(t?t.name:'')}</span></td><td class="l hm">${tlink(t)}</td><td>${x.apps}</td><td class="pts">${x[key]}</td></tr>`}).join('')}</tbody></table></div>`;
 }
+function cardsTable(list,key,limit){
+  const rows=list.slice(0,limit||list.length);
+  if(!rows.length)return `<div class="empty">${key==='y'?'Sariq':'Qizil'} kartochka olgan futbolchi yo‘q.</div>`;
+  return `<div class="scroll"><table class="tbl"><thead><tr><th class="c-rank">T/r</th><th class="c-team l">O‘yinchi</th><th class="l hm">Jamoa</th><th>Soni</th></tr></thead><tbody>${rows.map((x,i)=>{const t=team(x.p.tid);return `<tr><td class="c-rank">${i+1}</td><td class="c-team">${plink(x.p)}<span class="sub-m">${D(t?t.name:'')}</span></td><td class="l hm">${tlink(t)}</td><td class="pts">${x[key]}</td></tr>`}).join('')}</tbody></table></div>`;
+}
+const cardsBlock=(per,limit)=>`<div class="grid2e"><div><h3 class="sub-h"><span class="cardicon y"></span>Sariq kartochkalar</h3><div class="panel">${cardsTable(cardList(per,'y'),'y',limit)}</div></div><div><h3 class="sub-h"><span class="cardicon r"></span>Qizil kartochkalar</h3><div class="panel">${cardsTable(cardList(per,'r'),'r',limit)}</div></div></div>`;
 function suspList(per){
   const l=[...per.values()].filter(d=>d.ban>0);
   if(!l.length)return '';
@@ -594,22 +633,25 @@ function vHome(){
   if(!S.teams.length){
     return empty('Liga ma’lumotlari hali joylanmagan','Jamoalar va o‘yinlar tez orada shu yerda ko‘rinadi.',isAdmin?`<p><a class="btn pri" href="#boshqaruv">Boshqaruvga o‘tish</a></p>`:'');
   }
-  const lastMs=ri.last?ri.list[ri.last-1].ms.filter(counted):[];
+  const lastMs=ri.last?ri.list[ri.last-1].ms.slice().sort((x,y)=>(counted(y)?1:0)-(counted(x)?1:0)):[];
   let h=(logoOK(S.meta.banner)&&blobSrc(S.meta.banner))?`<img class="banner" src="${esc(blobSrc(S.meta.banner))}" alt="${esc(S.meta.name)}">`:'';
-  h+=`<section class="hero"><h1>${D(S.meta.name)}</h1><p class="meta">${D(S.meta.season)} yil`+
+  const hb=(logoOK(S.meta.posterBg)&&blobSrc(S.meta.posterBg))?` style="background-image:linear-gradient(rgba(10,13,18,.86),rgba(10,13,18,.93)),url('${esc(blobSrc(S.meta.posterBg))}');background-size:cover;background-position:center"`:'';
+  h+=`<section class="hero"${hb}><h1>${D(S.meta.name)}</h1><p class="meta">${D(S.meta.season)} yil`+
     (ri.total?(ri.last?` — ${ri.last}-tur o‘ynaldi, jami ${ri.total} tur`:` — ${ri.total} turdan iborat, o‘yinlar hali boshlanmagan`):'')+`</p>`;
   if(ri.total)h+=`<div class="rounds" role="list" aria-label="Turlar">${ri.list.map(x=>`<a role="listitem" class="${x.state}" href="#oyinlar-${x.r}" title="${x.r}-tur" aria-label="${x.r}-tur"></a>`).join('')}</div>`;
   if(lastMs.length)h+=`<div class="tiles">${lastMs.map(tile).join('')}</div>`;
   h+=`</section>`;
   const next=ri.next?ri.list[ri.next-1].ms.filter(m=>m.status==='scheduled'||m.status==='postponed'):[];
-  h+=`<div class="grid2 sec"><div><div class="sec-h"><h2>Jadval</h2><a class="more" href="#jadval">To‘liq jadval</a></div><div class="panel">${stdTable(st.slice(0,8),{})}</div></div>`;
+  h+=`<div class="grid2 sec"><div><div class="sec-h"><h2>Jadval</h2><a class="more" href="#jadval">To‘liq jadval</a></div><div class="panel">${stdTable(st.slice(0,8),{})}${stdLegend()}</div></div>`;
   h+=`<div><div class="sec-h"><h2>${ri.next?ri.next+'-tur o‘yinlari':'Keyingi o‘yinlar'}</h2><a class="more" href="#oyinlar${ri.next?'-'+ri.next:''}">Hammasi</a></div>`;
   h+=next.length?`<div class="panel mlist">${groupByDate(next)}</div>`:empty('Rejalashtirilgan o‘yinlar yo‘q','Yangi tur sanasi belgilanganda shu yerda ko‘rinadi.');
   h+=`</div></div>`;
-  const ts=topScorers(per);
-  h+=`<div class="grid2 sec"><div><div class="sec-h"><h2>To‘purarlar</h2><a class="more" href="#futbolchilar">Hammasi</a></div><div class="panel">${scorersTable(ts,5)}</div></div>`;
+  const ts=topScorers(per),as=topAssists(per);
+  h+=`<div class="grid2e sec"><div><div class="sec-h"><h2>To‘purarlar</h2><a class="more" href="#futbolchilar">Hammasi</a></div><div class="panel">${scorersTable(ts,5)}</div></div>`;
+  h+=`<div><div class="sec-h"><h2>Assistentlar</h2><a class="more" href="#futbolchilar-assistlar">Hammasi</a></div><div class="panel">${scorersTable(as,5,'as')}</div></div></div>`;
+  h+=`<div class="sec"><div class="sec-h"><h2>Kartochkalar</h2><a class="more" href="#futbolchilar-kartochkalar">Hammasi</a></div>${cardsBlock(per,5)}</div>`;
   const sp=suspList(per);
-  h+=`<div><div class="sec-h"><h2>Diskvalifikatsiya</h2></div><div class="panel">${sp||'<div class="empty">Keyingi o‘yinda o‘ynay olmaydigan futbolchi yo‘q.</div>'}</div></div></div>`;
+  h+=`<div class="sec"><div class="sec-h"><h2>Diskvalifikatsiya</h2></div><div class="panel">${sp||'<div class="empty">Keyingi o‘yinda o‘ynay olmaydigan futbolchi yo‘q.</div>'}</div></div>`;
   return h;
 }
 function vTable(){
@@ -640,10 +682,11 @@ function vMatch(id){
   if(m.status==='played'&&(!m.manual||(m.ev||[]).length)){
     const side=(T)=>{
       const map=new Map();
-      (m.ev||[]).forEach(e=>{const p=IDX.p.get(e.p);if(!p||p.tid!==T.id)return;const o=map.get(p.id)||{p,g:0,og:0,y:0,r:0};o[e.t]++;map.set(p.id,o)});
+      (m.ev||[]).forEach(e=>{const p=IDX.p.get(e.p);if(!p||p.tid!==T.id)return;const o=map.get(p.id)||{p,g:0,a:0,og:0,y:0,r:0};o[e.t]++;map.set(p.id,o)});
       const li=[...map.values()].sort((a,b)=>(b.g-a.g)||(b.r-a.r)||(b.y-a.y)).map(o=>{
         let x=plink(o.p);
         if(o.g)x+=' '+Array(o.g).fill(ICON.ball).join('');
+        if(o.a)x+=` <span class="badge ok">assist${o.a>1?' ×'+o.a:''}</span>`;
         if(o.og)x+=` <span class="badge red">avtogol${o.og>1?' ×'+o.og:''}</span>`;
         if(o.y)x+=' '+Array(o.y).fill('<span class="cardicon y" title="Sariq kartochka"></span>').join('');
         if(o.r)x+=' <span class="cardicon r" title="Qizil kartochka"></span>';
@@ -660,7 +703,8 @@ function vMatch(id){
 }
 function vTeams(){
   if(!S.teams.length)return `<div class="page-h"><h1>Ishtirokchilar</h1></div>`+empty('Jamoalar hali qo‘shilmagan','');
-  const st=standings();
+  const vet=(t)=>/veteran|ветеран/i.test(t.name),num=(t)=>{const m=/\d{4}/.exec(t.name);return m?+m[0]:Infinity};
+  const st=standings().sort((a,b)=>(vet(b.t)-vet(a.t))||(num(a.t)-num(b.t))||a.t.name.localeCompare(b.t.name));
   return `<div class="page-h"><h1>Ishtirokchilar</h1><span class="sub">${S.teams.length} ta jamoa</span></div><div class="teams">${st.map(r=>{const n=S.players.filter(p=>p.tid===r.id).length;return `<a class="tcard" href="#jamoa-${r.id}">${crest(r.t,'lg')}<span><b><bdi>${esc(r.t.name)}</bdi></b><small>${r.t.desc?D(r.t.desc)+'<br>':''}${r.rank}-o‘rin, ${r.pts} ochko, ${n} futbolchi</small></span></a>`}).join('')}</div>`;
 }
 function vTeam(id){
@@ -679,15 +723,14 @@ function vTeam(id){
   return h;
 }
 function vPlayers(arg){
-  const tab=arg==='kartochkalar'||arg==='diskvalifikatsiya'?arg:'gollar';
+  const tab=['assistlar','kartochkalar','diskvalifikatsiya'].includes(arg)?arg:'gollar';
   const {per}=discipline(),ft=UI.team||'';
-  const tabs=`<div class="tabs"><a href="#futbolchilar" ${tab==='gollar'?'aria-current="page"':''}>To‘purarlar</a><a href="#futbolchilar-kartochkalar" ${tab==='kartochkalar'?'aria-current="page"':''}>Kartochkalar</a><a href="#futbolchilar-diskvalifikatsiya" ${tab==='diskvalifikatsiya'?'aria-current="page"':''}>Diskvalifikatsiya</a></div>`;
+  const tabs=`<div class="tabs"><a href="#futbolchilar" ${tab==='gollar'?'aria-current="page"':''}>To‘purarlar</a><a href="#futbolchilar-assistlar" ${tab==='assistlar'?'aria-current="page"':''}>Assistentlar</a><a href="#futbolchilar-kartochkalar" ${tab==='kartochkalar'?'aria-current="page"':''}>Kartochkalar</a><a href="#futbolchilar-diskvalifikatsiya" ${tab==='diskvalifikatsiya'?'aria-current="page"':''}>Diskvalifikatsiya</a></div>`;
   const sel=`<div class="toolbar"><select class="sel" data-bind="ui-team" aria-label="Jamoa bo‘yicha saralash"><option value="">Barcha jamoalar</option>${S.teams.map(t=>`<option data-name value="${t.id}" ${ft===t.id?'selected':''}>${esc(t.name)}</option>`).join('')}</select></div>`;
   let all=[...per.values()].filter(d=>!ft||d.p.tid===ft),body='';
   if(tab==='gollar')body=`<div class="panel">${scorersTable(topScorers(new Map(all.map(d=>[d.p.id,d]))))}</div>`;
-  else if(tab==='kartochkalar'){
-    const l=all.filter(d=>d.y||d.r).sort((a,b)=>b.r-a.r||b.y-a.y||a.p.name.localeCompare(b.p.name));
-    body=l.length?`<div class="panel scroll"><table class="tbl"><thead><tr><th class="c-team l" style="left:0">Futbolchi</th><th class="l">Jamoa</th><th>Sariq</th><th>Qizil</th></tr></thead><tbody>${l.map(d=>`<tr><td class="c-team" style="left:0">${plink(d.p)}</td><td class="l">${tlink(team(d.p.tid))}</td><td>${d.y}</td><td>${d.r}</td></tr>`).join('')}</tbody></table></div>`:empty('Kartochka olgan futbolchi yo‘q','');
+  else if(tab==='assistlar')body=`<div class="panel">${scorersTable(topAssists(new Map(all.map(d=>[d.p.id,d]))),0,'as')}</div>`;
+  else if(tab==='kartochkalar'){body=cardsBlock(new Map(all.map(d=>[d.p.id,d])))
   } else {
     const l=all.filter(d=>d.ban>0);
     const R=S.rules;
@@ -700,10 +743,10 @@ function vPlayer(id){
   const t=team(p.tid),{per}=discipline(),d=per.get(id);
   const log=S.matches.filter(m=>m.status==='played'&&(m.ev||[]).some(e=>e.p===id)).sort(chrono);
   let h=`<div class="thead">${crest(t,'lg')}<div><h1><bdi>${esc(p.name)}</bdi></h1><p class="sub" style="margin:4px 0 0">${tlink(t)}${p.num?` — ${p.num}-raqam`:''}${p.birth?`, ${p.birth}-yil`:''}</p></div></div>`;
-  h+=`<div class="stats num"><div><b>${d.apps}</b><span>O‘yin</span></div><div><b>${d.g}</b><span>Gol</span></div><div><b>${d.og}</b><span>Avtogol</span></div><div><b>${d.y}</b><span>Sariq</span></div><div><b>${d.r}</b><span>Qizil</span></div></div>`;
+  h+=`<div class="stats num"><div><b>${d.apps}</b><span>O‘yin</span></div><div><b>${d.g}</b><span>Gol</span></div><div><b>${d.as}</b><span>Assist</span></div><div><b>${d.og}</b><span>Avtogol</span></div><div><b>${d.y}</b><span>Sariq</span></div><div><b>${d.r}</b><span>Qizil</span></div></div>`;
   if(d.ban>0)h+=`<p class="note">Keyingi o‘yinda diskvalifikatsiya tufayli o‘ynay olmaydi.</p>`;
   h+=`<div class="sec-h"><h2>Gol va kartochkalar</h2></div><div class="panel mlist">${log.length?log.map(m=>{const ev=m.ev.filter(e=>e.p===id),c=(k)=>ev.filter(e=>e.t===k).length;
-    const bits=[];if(c('g'))bits.push(c('g')+' gol');if(c('og'))bits.push(c('og')+' avtogol');if(c('y'))bits.push(c('y')+' sariq');if(c('r'))bits.push('qizil kartochka');
+    const bits=[];if(c('g'))bits.push(c('g')+' gol');if(c('a'))bits.push(c('a')+' assist');if(c('og'))bits.push(c('og')+' avtogol');if(c('y'))bits.push(c('y')+' sariq');if(c('r'))bits.push('qizil kartochka');
     return `<div style="padding:8px 0">${mrow(m,{round:true})}<div class="mmeta" style="padding:0 14px 8px"><b>${bits.join(', ')}</b></div></div>`}).join(''):'<div class="empty">Hozircha yozuv yo‘q.</div>'}</div>`;
   return h;
 }
@@ -733,12 +776,26 @@ function vRules(){
 const SOC=[['telegram','Telegram'],['instagram','Instagram'],['youtube','YouTube']];
 const okUrl=(u)=>/^https?:\/\/\S+$/i.test(u||'');
 function socialLinks(){return SOC.filter(([k])=>okUrl(S.meta[k]))}
+const VCATS=[['gol','Chiroyli gollar'],['kulgi','Kulgili holatlar']];
+const ytId=(u)=>{const m=/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:[^#]*&)?v=|shorts\/|embed\/|live\/))([\w-]{11})/.exec(u||'');return m?m[1]:''};
+const hostOf=(u)=>{try{const h=new URL(u).hostname.replace(/^www\./,'');return /youtu/.test(h)?'YouTube':/t\.me|telegram/.test(h)?'Telegram':/instagram/.test(h)?'Instagram':/tiktok/.test(h)?'TikTok':h}catch(e){return 'Havola'}};
+function videoCard(x){
+  const id=ytId(x.url),host=hostOf(x.url);
+  const th=id?`<img src="https://i.ytimg.com/vi/${id}/hqdefault.jpg" alt="" loading="lazy">`:`<span class="vph">${esc(host)}</span>`;
+  return `<div class="vcard"><a class="vthumb" href="${esc(x.url)}" target="_blank" rel="noopener" aria-label="${esc(x.title||'Video')}">${th}<span class="vplay" aria-hidden="true"></span></a><div class="vinfo"><b>${D(x.title||'Video')}</b><small>${esc(host)}${x.date?', '+fmtD(x.date):''}</small>${isAdmin?`<button type="button" class="linkbtn" data-act="vid-del" data-id="${x.id}">O‘chirish</button>`:''}</div></div>`;
+}
 function vMedia(){
   const soc=socialLinks(),vids=S.matches.filter(m=>m.video&&okUrl(m.video)).sort(chrono).reverse();
-  let h=`<div class="page-h"><h1>Media</h1><span class="sub">Rasmiy sahifalar va o‘yin videolari</span></div>`;
-  h+=soc.length?`<div class="soc">${soc.map(([k,l])=>`<a class="socb ${k}" href="${esc(S.meta[k])}" target="_blank" rel="noopener"><b>${l}</b><span>Obuna bo‘lish</span></a>`).join('')}</div>`:empty('Ijtimoiy tarmoq havolalari hali qo‘shilmagan','Telegram, Instagram va YouTube sahifalari qo‘shilgach shu yerda ko‘rinadi.',isAdmin?'<p><a class="btn pri" href="#boshqaruv-ulashish">Havolalarni qo‘shish</a></p>':'');
-  h+=`<div class="sec-h" style="margin-top:28px"><h2>Videolar</h2></div>`;
-  h+=vids.length?`<div class="panel mlist">${vids.map(m=>{const H=team(m.home),A=team(m.away);return `<a class="mrow" href="${esc(m.video)}" target="_blank" rel="noopener"><span class="mh"><bdi>${esc(H.name)}</bdi>${crest(H)}</span><span class="sc pend">Video</span><span class="ma">${crest(A)}<bdi>${esc(A.name)}</bdi></span><span class="mmeta"><span>${m.round}-tur</span>${m.date?`<span>${fmtD(m.date)}</span>`:''}</span></a>`}).join('')}</div>`:empty('Videolar hali qo‘shilmagan','O‘yin videosining havolasi bayonnomada kiritiladi.');
+  let h=`<div class="page-h"><h1>Media</h1><span class="sub">Videolar va rasmiy sahifalar</span></div>`;
+  h+=soc.length?`<div class="soc">${soc.map(([k,l])=>`<a class="socb ${k}" href="${esc(S.meta[k])}" target="_blank" rel="noopener"><b>${l}</b><span>Obuna bo‘lish</span></a>`).join('')}</div>`:(isAdmin?empty('Ijtimoiy tarmoq havolalari hali qo‘shilmagan','Telegram, Instagram va YouTube sahifalari qo‘shilgach shu yerda ko‘rinadi.','<p><a class="btn pri" href="#boshqaruv-ulashish">Havolalarni qo‘shish</a></p>'):'');
+  VCATS.forEach(([k,l])=>{
+    const list=S.videos.filter(x=>x.cat===k&&okUrl(x.url));
+    h+=`<div class="sec-h" style="margin-top:28px"><h2>${l}</h2>${isAdmin?`<button type="button" class="btn pri sm" data-act="vid-add" data-cat="${k}">Video qo‘shish</button>`:''}</div>`;
+    h+=list.length?`<div class="vgrid">${list.map(videoCard).join('')}</div>`:`<div class="panel"><div class="empty">Videolar tez orada qo‘shiladi.</div></div>`;
+  });
+  if(vids.length){
+    h+=`<div class="sec-h" style="margin-top:28px"><h2>O‘yin videolari</h2></div><div class="panel mlist">${vids.map(m=>{const H=team(m.home),A=team(m.away);return `<a class="mrow" href="${esc(m.video)}" target="_blank" rel="noopener"><span class="mh"><bdi>${esc(H.name)}</bdi>${crest(H)}</span><span class="sc pend">Video</span><span class="ma">${crest(A)}<bdi>${esc(A.name)}</bdi></span><span class="mmeta"><span>${m.round}-tur</span>${m.date?`<span>${fmtD(m.date)}</span>`:''}</span></a>`}).join('')}</div>`;
+  }
   return h;
 }
 function footer(){
@@ -751,13 +808,13 @@ function footer(){
 const UI={team:'',at:'',pk:'table',pr:0};
 let ED=null;
 const PALETTE=['#2450d6','#e8590c','#138a4b','#7b3fe4','#d4283f','#0e8f9b','#c2338a','#5b6472','#8a5a00','#1a7f5a'];
-const SUBS=[['boshqaruv','Umumiy'],['boshqaruv-jamoalar','Jamoalar'],['boshqaruv-futbolchilar','Futbolchilar'],['boshqaruv-oyinlar','O‘yinlar'],['boshqaruv-jarimalar','Jarimalar'],['boshqaruv-reglament','Reglament'],['boshqaruv-ulashish','Ulashish'],['boshqaruv-sozlamalar','Sozlamalar'],['boshqaruv-zaxira','Zaxira']];
+const SUBS=[['boshqaruv','Umumiy'],['boshqaruv-jamoalar','Jamoalar'],['boshqaruv-futbolchilar','Futbolchilar'],['boshqaruv-oyinlar','O‘yinlar'],['boshqaruv-jarimalar','Jarimalar'],['boshqaruv-reglament','Reglament'],['boshqaruv-media','Media'],['boshqaruv-ulashish','Ulashish'],['boshqaruv-sozlamalar','Sozlamalar'],['boshqaruv-zaxira','Zaxira']];
 function adminTabs(cur){return `<div class="tabs">${SUBS.map(([h,l])=>`<a href="#${h}" ${h===cur?'aria-current="page"':''}>${l}</a>`).join('')}</div>`}
 const noAccess=()=>empty('Bu bo‘lim tahrirlash huquqi borlar uchun','Agar siz liga tashkilotchisi bo‘lsangiz, sahifani Claude hisobingiz bilan oching.');
 function vAdmin(sub){
   if(!isAdmin)return noAccess();
   const cur='boshqaruv'+(sub?'-'+sub:'');
-  const f={'':aHome,jamoalar:aTeams,futbolchilar:aPlayers,oyinlar:aMatches,jarimalar:aPens,reglament:aReg,ulashish:aShare,sozlamalar:aSettings,zaxira:aBackup}[sub||''];
+  const f={'':aHome,jamoalar:aTeams,futbolchilar:aPlayers,oyinlar:aMatches,jarimalar:aPens,reglament:aReg,media:aMedia,ulashish:aShare,sozlamalar:aSettings,zaxira:aBackup}[sub||''];
   return `<div class="page-h"><h1>Boshqaruv</h1></div>${adminTabs(cur)}${f?f():''}`;
 }
 function aHome(){
@@ -783,7 +840,7 @@ function aPlayers(){
   const list=S.players.filter(p=>p.tid===ft).sort((a,b)=>(a.num||999)-(b.num||999)||a.name.localeCompare(b.name));
   if(!S.teams.length)return empty('Avval jamoa qo‘shing','Futbolchilar jamoaga biriktiriladi.',`<p><a class="btn pri" href="#boshqaruv-jamoalar">Jamoalarga o‘tish</a></p>`);
   return `<div class="toolbar"><select class="sel" data-bind="ui-at" aria-label="Jamoa">${S.teams.map(t=>`<option data-name value="${t.id}" ${t.id===ft?'selected':''}>${esc(t.name)}</option>`).join('')}</select><span class="grow"></span><button class="btn sec2" data-act="player-bulk">Ro‘yxat bilan qo‘shish</button><button class="btn pri" data-act="player-add">Yangi futbolchi</button></div>`+
-  (list.length?`<div class="panel scroll"><table class="tbl"><thead><tr><th class="c-rank">№</th><th class="c-team l">F.I.O.</th><th class="hm">Yili</th><th>O‘yin</th><th>Gol</th><th></th></tr></thead><tbody>${list.map(p=>{const d=per.get(p.id);return `<tr><td class="c-rank">${p.num||''}</td><td class="c-team">${D(p.name)}</td><td class="hm">${p.birth||'—'}</td><td>${d.apps}</td><td>${d.g}</td><td><div class="row-actions"><button class="btn sec2 sm" data-act="player-edit" data-id="${p.id}">Tahrirlash</button><button class="btn danger sm" data-act="player-del" data-id="${p.id}">O‘chirish</button></div></td></tr>`}).join('')}</tbody></table></div>`:empty('Bu jamoada futbolchi yo‘q','«Ro‘yxat bilan qo‘shish» orqali hammasini birdan kiritishingiz mumkin.'));
+  (list.length?`<div class="panel scroll"><table class="tbl"><thead><tr><th class="c-rank">№</th><th class="c-team l">F.I.O.</th><th class="hm">Yili</th><th>O‘yin</th><th>Gol</th><th>Assist</th><th></th></tr></thead><tbody>${list.map(p=>{const d=per.get(p.id);return `<tr><td class="c-rank">${p.num||''}</td><td class="c-team">${D(p.name)}</td><td class="hm">${p.birth||'—'}</td><td>${d.apps}</td><td>${d.g}</td><td>${d.as}</td><td><div class="row-actions"><button class="btn sec2 sm" data-act="player-edit" data-id="${p.id}">Tahrirlash</button><button class="btn danger sm" data-act="player-del" data-id="${p.id}">O‘chirish</button></div></td></tr>`}).join('')}</tbody></table></div>`:empty('Bu jamoada futbolchi yo‘q','«Ro‘yxat bilan qo‘shish» orqali hammasini birdan kiritishingiz mumkin.'));
 }
 function aMatches(){
   const ri=roundsInfo();
@@ -814,18 +871,24 @@ function aSettings(){
   <div class="fld"><label for="s-tb">Ochkolar teng bo‘lganda tartib</label><select id="s-tb" name="tb">${TB_PRESETS.map(p=>`<option value="${p[0]}" ${p[0]===cur?'selected':''}>${p[1]}</option>`).join('')}</select></div>
   <button class="btn pri" data-act="set-save">Sozlamalarni qo‘llash</button></div>`;
 }
+function aMedia(){
+  const l=S.videos.slice();
+  return `<p class="note">«Media» sahifasidagi «Chiroyli gollar» va «Kulgili holatlar» bo‘limlariga video havolasini qo‘shasiz. YouTube havolasi bo‘lsa, rasmi avtomatik chiqadi. Telegram va Instagram havolalari ham mumkin.</p>
+  <div class="toolbar"><button class="btn pri" data-act="vid-add" data-cat="gol">Video qo‘shish</button><a class="btn sec2" href="#media">Sahifada ko‘rish</a></div>`+
+  (l.length?`<div class="panel"><ul class="checks">${l.map(x=>`<li><span class="lv ok"></span><span style="flex:1;min-width:0"><b>${D(x.title||'Video')}</b><br><small class="sub">${esc((VCATS.find(c=>c[0]===x.cat)||['','?'])[1])} · <a class="more" href="${esc(x.url)}" target="_blank" rel="noopener">${esc(hostOf(x.url))}</a></small></span><button class="btn danger sm" data-act="vid-del" data-id="${x.id}">O‘chirish</button></li>`).join('')}</ul></div>`:empty('Hali video yo‘q','«Video qo‘shish» tugmasi bilan birinchi videoni qo‘shing.'));
+}
 function aReg(){
   return `<p class="note">Reglament «Reglament» sahifasida ko‘rinadi. Bo‘lim sarlavhasini <b>## Sarlavha</b> ko‘rinishida, bandlarni <b>1. Matn</b> ko‘rinishida yozing.</p><div class="panel" style="padding:16px 18px" id="regform"><div class="fld"><label for="reg">Reglament matni</label><textarea id="reg" name="reg" style="min-height:420px">${esc(S.meta.reglament||'')}</textarea></div><button class="btn pri" data-act="reg-save">Reglamentni qo‘llash</button></div>`;
 }
 function aShare(){
   const fld=(n,l,v,h)=>`<div class="fld"><label for="x-${n}">${l}</label><input id="x-${n}" name="${n}" type="url" value="${esc(v||'')}" placeholder="https://" inputmode="url">${h?`<span class="hint">${h}</span>`:''}</div>`;
   const ri=roundsInfo(),pr=UI.pr||ri.last||ri.current||1;
-  const kinds=[['table','Turnir jadvali'],['scorers','To‘purarlar'],['results','Tur natijalari'],['calendar','Tur taqvimi']];
+  const kinds=[['table','Turnir jadvali'],['scorers','To‘purarlar'],['results','Tur natijalari'],['assists','Assistentlar'],['calendar','Tur taqvimi']];
   return `<div class="sec-h"><h2>Ijtimoiy tarmoqlar</h2></div><div class="panel" style="padding:16px 18px" id="socform"><p class="sub" style="margin-top:0">Havolalar saytning «Media» sahifasi va pastki qismida ko‘rinadi. Bo‘sh qoldirilgan tarmoq ko‘rsatilmaydi.</p>
   ${fld('telegram','Telegram kanal',S.meta.telegram,'Masalan: https://t.me/kanal_nomi')}${fld('instagram','Instagram sahifa',S.meta.instagram,'Masalan: https://instagram.com/sahifa_nomi')}${fld('youtube','YouTube kanal',S.meta.youtube,'Masalan: https://youtube.com/@kanal_nomi')}${fld('siteUrl','Saytning havolasi',S.meta.siteUrl,'Telegram va Instagram uchun matnga qo‘shiladi. Shu havolani Instagram profilingizga ham qo‘ying.')}
   <button class="btn pri" data-act="soc-save">Havolalarni qo‘llash</button></div>
   <div class="sec-h" style="margin-top:28px"><h2>O‘z rasmlaringiz</h2></div>
-  <div class="panel" style="padding:16px 18px">${(FB.ok&&FB.user)?`<div class="upl"><div><b>Rasm foni</b><p class="sub">Pastdagi rasmlarning orqa foni sifatida ishlatiladi (masalan, stadion surati).</p><div class="logo-row">${(logoOK(S.meta.posterBg)&&blobSrc(S.meta.posterBg))?`<img class="thumb" src="${esc(blobSrc(S.meta.posterBg))}" alt="">`:''}<input type="file" accept="image/*" data-upl="posterBg" aria-label="Fon rasmini tanlang">${logoOK(S.meta.posterBg)?`<button class="btn danger sm" data-act="upl-del" data-k="posterBg">Olib tashlash</button>`:''}</div></div>
+  <div class="panel" style="padding:16px 18px">${(FB.ok&&FB.user)?`<div class="upl"><div><b>Rasm foni</b><p class="sub">Saytning bosh sahifasi va ijtimoiy tarmoq rasmlarining orqa foni bo‘ladi (masalan, stadion surati).</p><div class="logo-row">${(logoOK(S.meta.posterBg)&&blobSrc(S.meta.posterBg))?`<img class="thumb" src="${esc(blobSrc(S.meta.posterBg))}" alt="">`:''}<input type="file" accept="image/*" data-upl="posterBg" aria-label="Fon rasmini tanlang">${logoOK(S.meta.posterBg)?`<button class="btn danger sm" data-act="upl-del" data-k="posterBg">Olib tashlash</button>`:''}</div></div>
   <div><b>Afisha</b><p class="sub">Bosh sahifaning tepasida ko‘rinadi (masalan, tayyor poster).</p><div class="logo-row">${(logoOK(S.meta.banner)&&blobSrc(S.meta.banner))?`<img class="thumb" src="${esc(blobSrc(S.meta.banner))}" alt="">`:''}<input type="file" accept="image/*" data-upl="banner" aria-label="Afisha rasmini tanlang">${logoOK(S.meta.banner)?`<button class="btn danger sm" data-act="upl-del" data-k="banner">Olib tashlash</button>`:''}</div></div></div>`:`<p class="sub" style="margin:0">Rasm yuklash uchun tashkilotchi sifatida tizimga kirgan bo‘lishingiz kerak.</p>`}</div>
   <div class="sec-h" style="margin-top:28px"><h2>Ijtimoiy tarmoq uchun rasm</h2></div>
   <p class="sub" style="margin-top:0">Jadval, natijalar yoki taqvimni tayyor rasm qilib yuklab oling va Instagram yoki Telegramga joylang. Rasm sayt ma’lumotlaridan avtomatik chiziladi.</p>
@@ -873,9 +936,9 @@ function vEditor(id){
       const ps=S.players.filter(p=>p.tid===T.id).sort((a,b)=>(a.num||999)-(b.num||999)||a.name.localeCompare(b.name));
       const qb=(p,t,l)=>{const c=cntEv(d,p.id,t);return `<span class="qb">${l}<button type="button" data-act="ed-dec" data-p="${p.id}" data-t="${t}" aria-label="${l} kamaytirish" ${c?'':'disabled'}>−</button><b>${c}</b><button type="button" data-act="ed-inc" data-p="${p.id}" data-t="${t}" aria-label="${l} qo‘shish">+</button></span>`};
       const hasEv=(p)=>(d.ev||[]).some(e=>e.p===p.id),inPl=(p)=>hasEv(p)||(d.pl||[]).includes(p.id);
-      return `<div class="sec-h" style="margin-top:22px"><h2>${crest(T,'sm')} <bdi>${esc(T.name)}</bdi></h2></div><div class="panel">${ps.length?ps.map(p=>`<div class="qrow"><div class="pn"><small>${p.num||''}</small><bdi>${esc(p.name)}</bdi></div><div class="qbtns"><button type="button" class="chip" data-act="ed-pl" data-p="${p.id}" aria-pressed="${inPl(p)}" ${hasEv(p)?'disabled':''}>O‘ynadi</button>${qb(p,'g','Gol')}${qb(p,'og','Avtogol')}${qb(p,'y','Sariq')}${qb(p,'r','Qizil')}</div></div>`).join(''):`<div class="empty">Bu jamoada futbolchi yo‘q. Avval <a class="more" href="#boshqaruv-futbolchilar">futbolchilarni kiriting</a>.</div>`}</div>`;
+      return `<div class="sec-h" style="margin-top:22px"><h2>${crest(T,'sm')} <bdi>${esc(T.name)}</bdi></h2></div><div class="panel">${ps.length?ps.map(p=>`<div class="qrow"><div class="pn"><small>${p.num||''}</small><bdi>${esc(p.name)}</bdi></div><div class="qbtns"><button type="button" class="chip" data-act="ed-pl" data-p="${p.id}" aria-pressed="${inPl(p)}" ${hasEv(p)?'disabled':''}>O‘ynadi</button>${qb(p,'g','Gol')}${qb(p,'a','Assist')}${qb(p,'og','Avtogol')}${qb(p,'y','Sariq')}${qb(p,'r','Qizil')}</div></div>`).join(''):`<div class="empty">Bu jamoada futbolchi yo‘q. Avval <a class="more" href="#boshqaruv-futbolchilar">futbolchilarni kiriting</a>.</div>`}</div>`;
     };
-    h+=`<p class="sub" style="margin-top:18px">O‘yinda qatnashgan futbolchilarni «O‘ynadi» bilan belgilang (gol yoki kartochka olganlar avtomatik hisoblanadi). Har bir gol uchun futbolchi yonidagi «+» tugmasini bosing. Hisob gollardan avtomatik hisoblanadi; avtogol raqib hisobiga yoziladi.</p>`+side(H)+side(A);
+    h+=`<p class="sub" style="margin-top:18px">O‘yinda qatnashgan futbolchilarni «O‘ynadi» bilan belgilang (gol yoki kartochka olganlar avtomatik hisoblanadi). Har bir gol va assist uchun futbolchi yonidagi «+» tugmasini bosing. Hisob gollardan avtomatik hisoblanadi; avtogol raqib hisobiga yoziladi.</p>`+side(H)+side(A);
   }
   h+=`<div class="toolbar" style="margin-top:20px"><button class="btn pri" data-act="ed-save">Bayonnomani qo‘llash</button><a class="btn sec2" href="#oyin-${id}" data-act="ed-cancel">Bekor qilish</a></div>`;
   return h;
@@ -919,6 +982,10 @@ function posterCaption(kind,round,X,noLink){
     const {per}=discipline(),ts=topScorers(per).slice(0,10);
     lines.push(title,X.t('To‘purarlar')+':','');
     ts.forEach((x,i)=>{const t=team(x.p.tid);lines.push((i+1)+'. '+X.d(x.p.name)+(t?' ('+X.d(t.name)+')':'')+' — '+x.g+' '+X.t('gol'))});
+  }else if(kind==='assists'){
+    const {per}=discipline(),ts=topAssists(per).slice(0,10);
+    lines.push(title,X.t('Assistentlar')+':','');
+    ts.forEach((x,i)=>{const t=team(x.p.tid);lines.push((i+1)+'. '+X.d(x.p.name)+(t?' ('+X.d(t.name)+')':'')+' — '+x.as+' assist')});
   }else if(kind==='results'){
     const r=ri_(round);lines.push(title,round+X.t('-tur natijalari')+':','');
     r.forEach(m=>{const H=team(m.home),A=team(m.away),sc=mScore(m);lines.push(X.d(H.name)+(sc?' '+sc[0]+':'+sc[1]+' ':' — ')+X.d(A.name))});
@@ -943,11 +1010,12 @@ function drawPoster(cv,kind,round,X){
   c.textAlign='left';c.textBaseline='alphabetic';
   c.fillStyle='rgba(255,255,255,.65)';c.font='500 26px '+FNB;c.fillText(fitText(c,X.d(S.meta.platform||''),W-2*PAD),PAD,78);
   {const nm=X.d(S.meta.name);let fs=74;c.font='700 '+fs+'px '+FD;while(c.measureText(nm).width>W-2*PAD&&fs>38){fs-=2;c.font='700 '+fs+'px '+FD}c.fillStyle='#fff';c.fillText(fitText(c,nm,W-2*PAD),PAD,160)}
-  const sub={table:'Turnir jadvali',scorers:'To‘purarlar',results:round+'-tur natijalari',calendar:'Tur taqvimi'}[kind];
+  const sub={table:'Turnir jadvali',scorers:'To‘purarlar',assists:'Assistentlar',results:round+'-tur natijalari',calendar:'Tur taqvimi'}[kind];
   c.fillStyle='#f5c518';c.font='600 40px '+FD;c.fillText(X.t(sub)+'  •  '+X.d(S.meta.season),PAD,222);
   const top=262,bottom=H-120;
   if(kind==='table')pTable(c,X,PAD,top,W-2*PAD,bottom-top);
-  else if(kind==='scorers')pScorers(c,X,PAD,top,W-2*PAD,bottom-top);
+  else if(kind==='scorers')pScorers(c,X,PAD,top,W-2*PAD,bottom-top,'g');
+  else if(kind==='assists')pScorers(c,X,PAD,top,W-2*PAD,bottom-top,'as');
   else if(kind==='results')pResults(c,X,PAD,top,W-2*PAD,bottom-top,round);
   else pCalendar(c,X,PAD,top,W-2*PAD,bottom-top);
   c.fillStyle='rgba(255,255,255,.75)';c.font='500 24px '+FNB;c.textAlign='center';
@@ -977,13 +1045,13 @@ function pTable(c,X,x,y,w,h){
   c.textAlign='left';c.fillStyle='rgba(255,255,255,.6)';c.font='500 22px '+FNB;c.textBaseline='alphabetic';
   c.fillText(X.t('G‘alaba')+' '+S.rules.win+', '+X.t('durang')+' '+S.rules.draw+', '+X.t('mag‘lubiyat')+' '+S.rules.loss+' '+X.t('ochko'),x,y+h-6);
 }
-function pScorers(c,X,x,y,w,h){
-  const {per}=discipline(),list=topScorers(per).slice(0,12),hh=54,rh=Math.min(84,(h-hh-20)/Math.max(list.length,1));
+function pScorers(c,X,x,y,w,h,key){
+  key=key||'g';const {per}=discipline(),list=(key==='as'?topAssists(per):topScorers(per)).slice(0,12),hh=54,rh=Math.min(84,(h-hh-20)/Math.max(list.length,1));
   c.fillStyle='rgba(255,255,255,.12)';rr(c,x,y,w,hh,12);c.fill();
   c.fillStyle='rgba(255,255,255,.8)';c.font='600 24px '+FNB;c.textBaseline='middle';
   c.textAlign='center';c.fillText(X.t('T/r'),x+44,y+hh/2);c.textAlign='left';c.fillText(X.t('O‘yinchi'),x+100,y+hh/2);
-  c.textAlign='center';c.fillText(X.t('O‘yin'),x+w-190,y+hh/2);c.fillText(X.t('Gol'),x+w-62,y+hh/2);
-  if(!list.length){c.fillStyle='rgba(255,255,255,.7)';c.textAlign='center';c.font='500 30px '+FNB;c.fillText(X.t('Hozircha gol urilmagan.'),x+w/2,y+hh+80);return}
+  c.textAlign='center';c.fillText(X.t('O‘yin'),x+w-190,y+hh/2);c.fillText(X.t(key==='as'?'Assist':'Gol'),x+w-62,y+hh/2);
+  if(!list.length){c.fillStyle='rgba(255,255,255,.7)';c.textAlign='center';c.font='500 30px '+FNB;c.fillText(X.t(key==='as'?'Hozircha assist qayd etilmagan.':'Hozircha gol urilmagan.'),x+w/2,y+hh+80);return}
   list.forEach((p,i)=>{
     const yy=y+hh+8+i*rh,cy=yy+(rh-8)/2,t=team(p.p.tid);
     c.fillStyle=i%2?'rgba(255,255,255,.045)':'rgba(255,255,255,.09)';rr(c,x,yy,w,rh-8,12);c.fill();
@@ -991,7 +1059,7 @@ function pScorers(c,X,x,y,w,h){
     c.textAlign='left';c.font='600 36px '+FD;c.fillText(fitText(c,X.d(p.p.name),w-100-260),x+100,cy-(t?9:0));
     if(t){c.fillStyle='rgba(255,255,255,.6)';c.font='500 22px '+FNB;c.fillText(fitText(c,X.d(t.name),w-100-260),x+100,cy+22)}
     c.textAlign='center';c.fillStyle='rgba(255,255,255,.9)';c.font='500 34px '+FD;c.fillText(p.apps,x+w-190,cy);
-    c.fillStyle='#f5c518';c.font='700 42px '+FD;c.fillText(p.g,x+w-62,cy);
+    c.fillStyle='#f5c518';c.font='700 42px '+FD;c.fillText(p[key],x+w-62,cy);
   });
 }
 function pResults(c,X,x,y,w,h,round){
@@ -1192,18 +1260,18 @@ ACT['team-del']=async(el)=>{
 };
 /* futbolchilar */
 const yearOK=(y)=>!y||(+y>=1950&&+y<=new Date().getFullYear());
-function playerFields(p,tid){return [{n:'name',l:'Ism va familiya',v:p?p.name:'',full:1},{n:'birth',l:'Tug‘ilgan yili',t:'number',v:p&&p.birth||'',min:1950},{n:'num',l:'Futbolka raqami',t:'number',v:p&&p.num||'',min:0,max:99},{n:'g0',l:'Avvalgi gollar',t:'number',v:p&&p.g0||'',min:0,hint:'O‘yin bayonnomasisiz to‘plangan gollar'},{n:'a0',l:'Avvalgi o‘yinlar',t:'number',v:p&&p.a0||'',min:0},{n:'tid',l:'Jamoa',t:'select',opts:teamOpts(),v:tid,full:1}]}
+function playerFields(p,tid){return [{n:'name',l:'Ism va familiya',v:p?p.name:'',full:1},{n:'birth',l:'Tug‘ilgan yili',t:'number',v:p&&p.birth||'',min:1950},{n:'num',l:'Futbolka raqami',t:'number',v:p&&p.num||'',min:0,max:99},{n:'g0',l:'Avvalgi gollar',t:'number',v:p&&p.g0||'',min:0,hint:'O‘yin bayonnomasisiz to‘plangan gollar'},{n:'a0',l:'Avvalgi o‘yinlar',t:'number',v:p&&p.a0||'',min:0},{n:'as0',l:'Avvalgi assistlar',t:'number',v:p&&p.as0||'',min:0},{n:'tid',l:'Jamoa',t:'select',opts:teamOpts(),v:tid,full:1}]}
 ACT['player-add']=()=>openForm({title:'Yangi futbolchi',fields:playerFields(null,UI.at||S.teams[0].id),onSubmit(v){
   const name=v.name.trim().replace(/\s+/g,' ');if(name.length<3)return 'Ism va familiyani kiriting.';
   if(!yearOK(v.birth))return 'Tug‘ilgan yilni to‘g‘ri kiriting (masalan, 2001).';
   if(S.players.some(p=>p.tid===v.tid&&p.name.toLowerCase()===name.toLowerCase()))return 'Bu jamoada bunday futbolchi allaqachon bor.';
-  UI.at=v.tid;mutate(()=>{S.players.push({id:nid('p'),tid:v.tid,name,birth:+v.birth||null,num:v.num===''?null:+v.num,g0:+v.g0||0,a0:+v.a0||0})});
+  UI.at=v.tid;mutate(()=>{S.players.push({id:nid('p'),tid:v.tid,name,birth:+v.birth||null,num:v.num===''?null:+v.num,g0:+v.g0||0,a0:+v.a0||0,as0:+v.as0||0})});
 }});
 ACT['player-edit']=(el)=>{const p=IDX.p.get(el.dataset.id);openForm({title:'Futbolchini tahrirlash',fields:playerFields(p,p.tid),onSubmit(v){
   const name=v.name.trim().replace(/\s+/g,' ');if(name.length<3)return 'Ism va familiyani kiriting.';
   if(!yearOK(v.birth))return 'Tug‘ilgan yilni to‘g‘ri kiriting (masalan, 2001).';
   if(v.tid!==p.tid&&S.matches.some(m=>(m.ev||[]).some(e=>e.p===p.id)))return 'Futbolchining o‘yinlarda yozuvlari bor, jamoasini almashtirib bo‘lmaydi.';
-  mutate(()=>{p.name=name;p.birth=+v.birth||null;p.num=v.num===''?null:+v.num;p.tid=v.tid;p.g0=+v.g0||0;p.a0=+v.a0||0});
+  mutate(()=>{p.name=name;p.birth=+v.birth||null;p.num=v.num===''?null:+v.num;p.tid=v.tid;p.g0=+v.g0||0;p.a0=+v.a0||0;p.as0=+v.as0||0});
 }})};
 ACT['player-del']=async(el)=>{
   const p=IDX.p.get(el.dataset.id);
@@ -1295,6 +1363,17 @@ ACT['poster-copy']=async()=>{
   const t=$q('#caption');if(!t)return;t.select();
   try{await navigator.clipboard.writeText(t.value);toast('Matn nusxalandi')}catch(e){try{document.execCommand('copy');toast('Matn nusxalandi')}catch(e2){toast('Matnni belgilab, qo‘lda nusxalang.')}}
 };
+/* videolar */
+ACT['vid-add']=(el)=>openForm({title:'Video qo‘shish',fields:[
+  {n:'cat',l:'Bo‘lim',t:'select',opts:VCATS.map(([v,l])=>({v,l})),v:(el&&el.dataset&&el.dataset.cat)||'gol',full:1},
+  {n:'title',l:'Sarlavha',full:1,hint:'Masalan: 3-tur, Suyunning chiroyli goli'},
+  {n:'url',l:'Video havolasi',t:'url',full:1,hint:'YouTube, Telegram yoki Instagram havolasi (https:// bilan boshlansin)'}],
+  onSubmit(v){
+    const url=v.url.trim();if(!okUrl(url))return 'Havola https:// bilan boshlanishi kerak.';
+    if(S.videos.some(x=>x.url===url))return 'Bu havola allaqachon qo‘shilgan.';
+    mutate(()=>S.videos.unshift({id:nid('v'),cat:v.cat,title:v.title.trim(),url,date:todayISO()}));
+  }});
+ACT['vid-del']=async(el)=>{if(await ask('Videoni o‘chirasizmi?','Video faqat sayt ro‘yxatidan olib tashlanadi.','Ha, o‘chirish'))mutate(()=>{S.videos=S.videos.filter(x=>x.id!==el.dataset.id)})};
 /* zaxira */
 ACT['bk-export']=async()=>{
   const data=JSON.stringify(S,null,1),name='liga-zaxira-'+todayISO()+'.json';
@@ -1305,7 +1384,7 @@ function normalize(x){
   if(!x||!Array.isArray(x.teams)||!Array.isArray(x.players)||!Array.isArray(x.matches))throw new Error('format');
   const d=JSON.parse(JSON.stringify(S));
   x.meta=Object.assign({platform:'',translit:true},d.meta,x.meta||{});x.rules=Object.assign({},d.rules,x.rules||{});
-  x.penalties=Array.isArray(x.penalties)?x.penalties:[];x.seq=Object.assign({t:0,p:0,m:0,j:0},x.seq||{});x.v=1;
+  x.penalties=Array.isArray(x.penalties)?x.penalties:[];x.videos=Array.isArray(x.videos)?x.videos:[];x.seq=Object.assign({t:0,p:0,m:0,j:0},x.seq||{});x.v=1;
   x.matches.forEach(m=>{m.ev=Array.isArray(m.ev)?m.ev:[]});
   return x;
 }
@@ -1374,7 +1453,7 @@ let rt=0;const schedRender=()=>{clearTimeout(rt);rt=setTimeout(()=>{if(!ED)rende
 const imgPending=new Set();
 function wantImages(){
   if(!FB.ok)return;
-  const ids=[...S.teams.map(t=>t.logo),S.meta.banner,isAdmin?S.meta.posterBg:''].filter(logoOK);
+  const ids=[...S.teams.map(t=>t.logo),S.meta.banner,S.meta.posterBg].filter(logoOK);
   ids.forEach(id=>{
     if(IMGC[id]||imgPending.has(id))return;imgPending.add(id);
     let c=null;try{c=localStorage.getItem('img:'+id)}catch(e){}
