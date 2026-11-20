@@ -8,7 +8,7 @@
 <meta name="description" content="Havaskorlar futbol ligasi: jadval, o‘yinlar, to‘purarlar va jamoalar">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Onest:wght@400;500;600;700&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -363,6 +363,39 @@ dialog .df{display:flex;gap:8px;justify-content:flex-end;padding:12px 18px 16px;
 .tbl td{vertical-align:middle}
 .tbl .tl{vertical-align:middle}
 
+/* tashrifchilar hisoblagichi va pastki qism */
+.foot2{flex-direction:column;align-items:center;justify-content:flex-start;gap:16px;text-align:center;padding-top:26px}
+.foot2 .frow{display:flex;gap:10px 22px;flex-wrap:wrap;justify-content:center}
+.foot2 .fcopy{font-weight:600;color:var(--ink-2);padding-top:4px}
+.vc{display:inline-block;min-width:270px;max-width:100%;border:2px solid #0b0b0b;background:#fff;color:#0b0b0b;font-family:'Silkscreen','Courier New',monospace;text-transform:uppercase;text-align:left}
+.vch{background:#46709e;color:#fff;text-align:center;padding:6px 8px;font-size:13px;letter-spacing:.1em}
+.vcr{display:grid;grid-template-columns:1fr auto;border-top:2px solid #0b0b0b}
+.vcr span{background:#a9c0ea;padding:8px 10px;font-size:12px;display:flex;align-items:center}
+.vcr b{padding:5px 12px;font-size:21px;font-weight:700;text-align:right;min-width:120px;background:#fff;font-variant-numeric:tabular-nums;border-left:2px solid #0b0b0b}
+@media(max-width:760px){
+  main{padding-bottom:24px}
+  .foot2{padding-bottom:96px}
+  #app.dirty main{padding-bottom:24px}
+  #app.dirty .foot2{padding-bottom:236px}
+}
+
+/* rasmlar galereyasi */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.ptile{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.pbtn{padding:0;border:1px solid var(--rule);border-radius:10px;overflow:hidden;background:var(--surface-2);aspect-ratio:1/1;cursor:pointer;display:block;width:100%}
+.pbtn img{width:100%;height:100%;object-fit:cover;display:block}
+.pbtn:hover{border-color:var(--ink-3)}
+.pph{display:block;width:100%;height:100%;background:linear-gradient(90deg,var(--surface-2),var(--bg-2),var(--surface-2))}
+.ptile small{color:var(--ink-3);font-size:12.5px}
+dialog.lb{width:min(980px,96vw);background:#0b0e13;color:#fff;border:0}
+.lbx{padding:10px}
+.lbimgw{display:grid;place-items:center;min-height:200px}
+.lbimgw img{max-width:100%;max-height:calc(100vh - 200px);object-fit:contain;border-radius:8px}
+.lbc{display:flex;justify-content:space-between;gap:10px;padding:10px 4px;color:#cfd6e3}
+.lbn{display:flex;gap:8px;justify-content:center}
+.lbn .btn{background:#222a36;color:#fff;border-color:#3a4556;min-width:60px;font-size:20px}
+@media(max-width:480px){.pgrid{grid-template-columns:repeat(3,1fr);gap:6px}}
+
 .linkbtn{background:none;border:0;padding:0;color:var(--ink-2);font:inherit;font-weight:600;text-decoration:underline;cursor:pointer}
 .fauth{color:var(--ink-3)}
 </style>
@@ -412,6 +445,7 @@ const $q=(s,r)=>(r||document).querySelector(s);
 const $qa=(s,r)=>[...(r||document).querySelectorAll(s)];
 let S=JSON.parse(document.getElementById('state').textContent);
 S.videos=Array.isArray(S.videos)?S.videos:[];
+S.photos=Array.isArray(S.photos)?S.photos:[];
 let IDX={t:new Map(),p:new Map(),m:new Map()};
 function reindex(){IDX.t=new Map(S.teams.map(t=>[t.id,t]));IDX.p=new Map(S.players.map(p=>[p.id,p]));IDX.m=new Map(S.matches.map(m=>[m.id,m]))}
 reindex();
@@ -821,20 +855,31 @@ function vMedia(){
     h+=`<div class="sec-h" style="margin-top:28px"><h2>${l}</h2>${isAdmin?`<button type="button" class="btn pri sm" data-act="vid-add" data-cat="${k}">Video qo‘shish</button>`:''}</div>`;
     h+=list.length?`<div class="vgrid">${list.map(videoCard).join('')}</div>`:`<div class="panel"><div class="empty">Videolar tez orada qo‘shiladi.</div></div>`;
   });
+  {
+    const ph=S.photos||[],n=Math.min(ph.length,UI.rasmN||12);
+    h+=`<div class="sec-h" style="margin-top:28px"><h2>Rasmlar</h2>${isAdmin?`<button type="button" class="btn pri sm" data-act="rasm-add">Rasm qo‘shish</button>`:''}</div>`;
+    h+=ph.length?`<div class="pgrid">${ph.slice(0,n).map((p,i)=>{const src=blobSrc(p.th);return `<div class="ptile"><button type="button" class="pbtn" data-act="rasm-open" data-i="${i}" aria-label="Rasmni katta ko‘rish">${src?`<img src="${esc(src)}" alt="" loading="lazy">`:'<span class="pph"></span>'}</button>${p.title?`<small>${D(p.title)}</small>`:''}${isAdmin?`<button type="button" class="linkbtn" data-act="rasm-del" data-id="${p.id}">O‘chirish</button>`:''}</div>`}).join('')}</div>${ph.length>n?`<p style="text-align:center;margin-top:14px"><button type="button" class="btn sec2" data-act="rasm-more">Yana ko‘rsatish (${ph.length-n})</button></p>`:''}`:`<div class="panel"><div class="empty">Rasmlar tez orada qo‘shiladi.</div></div>`;
+  }
   if(vids.length){
     h+=`<div class="sec-h" style="margin-top:28px"><h2>O‘yin videolari</h2></div><div class="panel mlist">${vids.map(m=>{const H=team(m.home),A=team(m.away);return `<a class="mrow" href="${esc(m.video)}" target="_blank" rel="noopener"><span class="mh"><bdi>${esc(H.name)}</bdi>${crest(H)}</span><span class="sc pend">Video</span><span class="ma">${crest(A)}<bdi>${esc(A.name)}</bdi></span><span class="mmeta"><span>${m.round}-tur</span>${m.date?`<span>${fmtD(m.date)}</span>`:''}</span></a>`}).join('')}</div>`;
   }
   return h;
 }
+function visitBox(){
+  if(!(FB.ok&&VIS.ok))return '';
+  const n=(x)=>x==null?'…':fmtN(x);
+  return `<div class="vc" role="group" aria-label="Tashrifchilar"><div class="vch">TASHRIFCHILAR</div><div class="vcr"><span>Jami kirganlar</span><b id="vc-total">${n(VIS.total)}</b></div><div class="vcr"><span>Bir kunda (bugun)</span><b id="vc-day">${n(VIS.day)}</b></div></div>`;
+}
 function footer(){
   const soc=socialLinks();
   const auth=FB.ok?(FB.user?`<span class="fauth">Tashkilotchi <button type="button" class="linkbtn" data-act="logout">Chiqish</button></span>`:`<span class="fauth"><button type="button" class="linkbtn" data-act="login">Tashkilotchi uchun kirish</button></span>`):'';
   const txt=S.meta.footer!==undefined?S.meta.footer:'Suyun_bek 2026';
-  return `<footer class="wrap foot"><span data-raw>${esc(txt)}</span>${soc.length?`<span class="fsoc">${soc.map(([k,l])=>`<a href="${esc(S.meta[k])}" target="_blank" rel="noopener">${l}</a>`).join('')}</span>`:''}${auth}</footer>`;
+  const links=(soc.length?`<span class="fsoc">${soc.map(([k,l])=>`<a href="${esc(S.meta[k])}" target="_blank" rel="noopener">${l}</a>`).join('')}</span>`:'')+auth;
+  return `<footer class="wrap foot foot2">${visitBox()}${links?`<div class="frow">${links}</div>`:''}<div class="fcopy" data-raw>${esc(txt)}</div></footer>`;
 }
 
 /* ---------- Boshqaruv ko‘rinishlari ---------- */
-const UI={team:'',at:'',pk:'table',pr:0};
+const UI={team:'',at:'',pk:'table',pr:0,rasmN:12};
 let ED=null;
 const PALETTE=['#2450d6','#e8590c','#138a4b','#7b3fe4','#d4283f','#0e8f9b','#c2338a','#5b6472','#8a5a00','#1a7f5a'];
 const SUBS=[['boshqaruv','Umumiy'],['boshqaruv-jamoalar','Jamoalar'],['boshqaruv-futbolchilar','Futbolchilar'],['boshqaruv-oyinlar','O‘yinlar'],['boshqaruv-jarimalar','Jarimalar'],['boshqaruv-reglament','Reglament'],['boshqaruv-media','Media'],['boshqaruv-ulashish','Ulashish'],['boshqaruv-sozlamalar','Sozlamalar'],['boshqaruv-zaxira','Zaxira']];
@@ -903,7 +948,7 @@ function aSettings(){
 function aMedia(){
   const l=S.videos.slice();
   return `<p class="note">«Media» sahifasidagi «Chiroyli gollar» va «Video roliklar» bo‘limlariga video havolasini qo‘shasiz. YouTube havolasi bo‘lsa, rasmi avtomatik chiqadi. Telegram va Instagram havolalari ham mumkin.</p>
-  <div class="toolbar"><button class="btn pri" data-act="vid-add" data-cat="gol">Video qo‘shish</button><a class="btn sec2" href="#media">Sahifada ko‘rish</a></div>`+
+  <div class="toolbar"><button class="btn pri" data-act="vid-add" data-cat="gol">Video qo‘shish</button><button class="btn pri" data-act="rasm-add">Rasm qo‘shish</button><a class="btn sec2" href="#media">Sahifada ko‘rish</a></div><p class="sub">Hozir: ${S.videos.length} ta video, ${S.photos.length} ta rasm. Rasmni o‘chirish uchun «Media» sahifasidagi rasm tagidagi «O‘chirish»ni bosing.</p>`+
   (l.length?`<div class="panel"><ul class="checks">${l.map(x=>`<li><span class="lv ok"></span><span style="flex:1;min-width:0"><b>${D(x.title||'Video')}</b><br><small class="sub">${esc((VCATS.find(c=>c[0]===x.cat)||['','?'])[1])} · <a class="more" href="${esc(x.url)}" target="_blank" rel="noopener">${esc(hostOf(x.url))}</a></small></span><button class="btn danger sm" data-act="vid-del" data-id="${x.id}">O‘chirish</button></li>`).join('')}</ul></div>`:empty('Hali video yo‘q','«Video qo‘shish» tugmasi bilan birinchi videoni qo‘shing.'));
 }
 function aReg(){
@@ -1133,6 +1178,23 @@ function pCalendar(c,X,x,y,w,h){
 /* ---------- Dastur: yo‘naltirish, amallar, saqlash ---------- */
 let isAdmin=false,dirty=0,publishing=false,script='lat';
 const FB={ok:false,db:null,auth:null,user:null,rev:0,empty:false};
+/* ---------- Tashrifchilar hisoblagichi ---------- */
+const VIS={total:null,day:null,ok:true};
+const fmtN=(n)=>String(n).replace(/\B(?=(\d{3})+(?!\d))/g,' ');
+function paintVisits(){const a=document.getElementById('vc-total'),b=document.getElementById('vc-day');if(a)a.textContent=VIS.total==null?'…':fmtN(VIS.total);if(b)b.textContent=VIS.day==null?'…':fmtN(VIS.day)}
+function initVisits(){
+  if(!FB.ok)return;
+  const day=todayISO(),key='kfl-v-'+day;
+  const onErr=()=>{if(VIS.ok){VIS.ok=false;render(true)}};
+  FB.db.doc('stats/total').onSnapshot(s=>{VIS.total=s.exists?(+s.data().n||0):0;paintVisits()},onErr);
+  FB.db.doc('stats/day_'+day).onSnapshot(s=>{VIS.day=s.exists?(+s.data().n||0):0;paintVisits()},onErr);
+  let done=false;try{done=localStorage.getItem(key)==='1'}catch(e){}
+  if(!done){
+    const inc=firebase.firestore.FieldValue.increment(1);
+    Promise.all([FB.db.doc('stats/total').set({n:inc},{merge:true}),FB.db.doc('stats/day_'+day).set({n:inc},{merge:true})])
+      .then(()=>{try{localStorage.setItem(key,'1')}catch(e){}}).catch(()=>{});
+  }
+}
 const app=document.getElementById('app');
 const store=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){}return null};
 script=store('kfl-script')||S.meta.script||'lat';
@@ -1180,6 +1242,7 @@ function render(keepScroll){
   app.classList.toggle('dirty',dirty>0);
   app.innerHTML=header(r)+`<main class="wrap" id="main">${body}</main>`+footer()+bnav(r)+saveBar();
   if(script==='cyr')cyrDom(app);
+  if(r.n==='media')wantImages();
   document.title=(S.meta.platform?S.meta.platform+' — ':'')+S.meta.name;
   document.documentElement.lang=script==='cyr'?'uz-Cyrl':'uz';
   if(keepScroll)window.scrollTo(0,y);
@@ -1203,7 +1266,7 @@ function fieldHTML(f){
   return `<div class="fld" ${f.full?'style="grid-column:1/-1"':''}><label for="${id}">${f.l}</label>${c}${f.hint?`<span class="hint">${f.hint}</span>`:''}</div>`;
 }
 function openForm(cfg){
-  dlgCfg=cfg;
+  dlgCfg=cfg;dlg.className='';
   dlg.innerHTML=`<div class="dh"><h2>${cfg.title}</h2></div><div class="db">${cfg.intro?`<p class="sub" style="margin-top:0">${cfg.intro}</p>`:''}<div class="fgrid">${(cfg.fields||[]).map(fieldHTML).join('')}${cfg.extra||''}</div></div><p class="err" role="alert"></p><div class="df"><button class="btn sec2" data-d="cancel">Bekor qilish</button><button class="btn ${cfg.danger?'danger':'pri'}" data-d="ok">${cfg.submit||'Saqlash'}</button></div>`;
   if(script==='cyr')cyrDom(dlg);
   if(!dlg.open)dlg.showModal();
@@ -1214,6 +1277,7 @@ function ask(title,text,okLabel){
   return new Promise(res=>{openForm({title:esc(title),intro:esc(text),fields:[],submit:okLabel||'Ha, davom etish',danger:true,onSubmit(){res(true)},onCancel(){res(false)}})});
 }
 dlg.addEventListener('click',e=>{
+  const ac=e.target.closest('[data-act]');if(ac&&ACT[ac.dataset.act]){ACT[ac.dataset.act](ac,e);return}
   if(e.target.closest('.menu a')){dlg.close();return}
   const b=e.target.closest('[data-d]');if(!b)return;
   if(b.dataset.d==='cancel'){dlg.close();return}
@@ -1222,8 +1286,10 @@ dlg.addEventListener('click',e=>{
   if(err){$q('.err',dlg).textContent=U(err);return}
   dlgCfg.onCancel=null;dlg.close();
 });
-dlg.addEventListener('close',()=>{if(dlgCfg&&dlgCfg.onCancel){const f=dlgCfg.onCancel;dlgCfg.onCancel=null;f()}});
-dlg.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();$q('[data-d=ok]',dlg).click()}});
+dlg.addEventListener('close',()=>{dlg.className='';if(dlgCfg&&dlgCfg.onCancel){const f=dlgCfg.onCancel;dlgCfg.onCancel=null;f()}});
+document.addEventListener('keydown',(e)=>{if(dlg.open&&dlg.classList.contains('lb')&&(e.key==='ArrowLeft'||e.key==='ArrowRight')){e.preventDefault();openPhoto(lbI+(e.key==='ArrowRight'?1:-1))}});
+dlg.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();$q('[data-d=ok]',dlg).click()}});
 
 /* ---------- Rasm yuklash ---------- */
 function loadImgFile(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),i=new Image();i.onload=()=>{URL.revokeObjectURL(u);res(i)};i.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('img'))};i.src=u})}
@@ -1399,6 +1465,55 @@ ACT['dedup-fix']=async()=>{
   if(await ask('Takroriy hisob tuzatilsinmi?','Quyidagilar o‘zgaradi: '+lines+'. Bayonnomalardagi gollar o‘zgarmaydi. Keyin «Saqlash va e’lon qilish» tugmasini bosing.','Ha, tuzatish'))
     mutate(()=>{plan.forEach(r=>{r.p.g0=(+r.p.g0||0)-r.dg;r.p.a0=(+r.p.a0||0)-r.da})});
 };
+/* rasmlar */
+const toDataURL=(b)=>new Promise((res,rej)=>{const f=new FileReader();f.onload=()=>res(f.result);f.onerror=rej;f.readAsDataURL(b)});
+const rid=()=>[...crypto.getRandomValues(new Uint8Array(16))].map(x=>x.toString(16).padStart(2,'0')).join('');
+async function uploadPhoto(file){
+  if(!FB.ok||!FB.user){toast('Rasm yuklash uchun avval tizimga kiring.');return null}
+  if(!file||!/^image\//.test(file.type))return null;
+  try{
+    let full=null;
+    for(const [mx,q] of [[1280,.82],[1280,.7],[1000,.7],[800,.65]]){const d=await toDataURL(await makeBlob(file,{max:mx,mime:'image/jpeg',q}));if(d.length<=900000){full=d;break}}
+    if(!full)return null;
+    const th=await toDataURL(await makeBlob(file,{max:480,mime:'image/jpeg',q:.75}));
+    const a=rid(),b=rid();
+    await FB.db.doc('images/'+a).set({d:full});await FB.db.doc('images/'+b).set({d:th});
+    IMGC[a]=full;IMGC[b]=th;return {th:b,full:a};
+  }catch(e){return null}
+}
+ACT['rasm-add']=()=>{
+  const st={items:[],busy:false};
+  openForm({title:'Rasm qo‘shish',fields:[{n:'title',l:'Izoh (ixtiyoriy, tanlangan hamma rasmga)',full:1}],
+    extra:`<div class="fld" style="grid-column:1/-1"><label for="rasmfile">Rasmlar</label>${(FB.ok&&FB.user)?`<input type="file" id="rasmfile" accept="image/*" multiple><span class="hint" id="rasmprog">Bir nechta rasmni birdan tanlash mumkin. Rasmlar avtomatik kichraytiriladi.</span>`:`<span class="hint">Rasm yuklash uchun tashkilotchi sifatida tizimga kiring.</span>`}</div>`,
+    submit:'Qo‘shish',
+    onOpen:()=>{const f=$q('#rasmfile',dlg),pr=$q('#rasmprog',dlg);if(!f)return;
+      f.addEventListener('change',async()=>{
+        const files=[...f.files];st.busy=true;let okn=0;
+        for(let i=0;i<files.length;i++){pr.textContent=U('Yuklanmoqda: '+(i+1)+' / '+files.length+'…');const r=await uploadPhoto(files[i]);if(r){st.items.push(r);okn++}}
+        st.busy=false;pr.textContent=U(okn+' ta rasm tayyor'+(okn<files.length?', '+(files.length-okn)+' tasi yuklanmadi':'')+'.');f.value='';
+      })},
+    onSubmit(v){
+      if(st.busy)return 'Yuklanish tugashini kuting.';
+      if(!st.items.length)return 'Avval rasmlarni tanlang.';
+      const t=v.title.trim();
+      mutate(()=>{[...st.items].reverse().forEach(x=>S.photos.unshift({id:nid('r'),title:t,th:x.th,full:x.full,date:todayISO()}))});
+    }});
+};
+ACT['rasm-del']=async(el)=>{if(await ask('Rasmni o‘chirasizmi?','Rasm faqat Media ro‘yxatidan olib tashlanadi.','Ha, o‘chirish'))mutate(()=>{S.photos=S.photos.filter(x=>x.id!==el.dataset.id)})};
+ACT['rasm-more']=()=>{UI.rasmN=(UI.rasmN||12)+12;render(true);wantImages()};
+let lbI=0;
+function loadFull(id,cb){if(IMGC[id])return cb(IMGC[id]);if(!FB.ok)return;FB.db.doc('images/'+id).get().then(s=>{if(s.exists){IMGC[id]=s.data().d;cb(IMGC[id])}}).catch(()=>{})}
+function openPhoto(i){
+  const ph=S.photos;if(!ph.length)return;
+  lbI=((i%ph.length)+ph.length)%ph.length;const p=ph[lbI];
+  dlgCfg={onSubmit(){},closeOnNav:true};dlg.className='lb';
+  dlg.innerHTML=`<div class="lbx"><div class="lbimgw"><img id="lbimg" alt="" src="${esc(blobSrc(p.th))}"></div><div class="lbc"><span>${p.title?D(p.title):''}</span><b>${lbI+1} / ${ph.length}</b></div><div class="lbn"><button type="button" class="btn sec2" data-act="rasm-nav" data-d="-1" aria-label="Oldingi">‹</button><button type="button" class="btn sec2" data-d="cancel">Yopish</button><button type="button" class="btn sec2" data-act="rasm-nav" data-d="1" aria-label="Keyingi">›</button></div></div>`;
+  if(script==='cyr')cyrDom(dlg);
+  if(!dlg.open)dlg.showModal();
+  loadFull(p.full,(src)=>{const im=document.getElementById('lbimg');if(im&&ph[lbI]===p)im.src=src});
+}
+ACT['rasm-open']=(el)=>openPhoto(+el.dataset.i);
+ACT['rasm-nav']=(el)=>openPhoto(lbI+(+el.dataset.d));
 /* videolar */
 ACT['vid-add']=(el)=>openForm({title:'Video qo‘shish',fields:[
   {n:'cat',l:'Bo‘lim',t:'select',opts:VCATS.map(([v,l])=>({v,l})),v:(el&&el.dataset&&el.dataset.cat)||'gol',full:1},
@@ -1420,7 +1535,7 @@ function normalize(x){
   if(!x||!Array.isArray(x.teams)||!Array.isArray(x.players)||!Array.isArray(x.matches))throw new Error('format');
   const d=JSON.parse(JSON.stringify(S));
   x.meta=Object.assign({platform:'',translit:true},d.meta,x.meta||{});x.rules=Object.assign({},d.rules,x.rules||{});
-  x.penalties=Array.isArray(x.penalties)?x.penalties:[];x.videos=Array.isArray(x.videos)?x.videos:[];x.seq=Object.assign({t:0,p:0,m:0,j:0},x.seq||{});x.v=1;
+  x.penalties=Array.isArray(x.penalties)?x.penalties:[];x.videos=Array.isArray(x.videos)?x.videos:[];x.photos=Array.isArray(x.photos)?x.photos:[];x.seq=Object.assign({t:0,p:0,m:0,j:0},x.seq||{});x.v=1;
   x.matches.forEach(m=>{m.ev=Array.isArray(m.ev)?m.ev:[]});
   return x;
 }
@@ -1491,7 +1606,8 @@ let rt=0;const schedRender=()=>{clearTimeout(rt);rt=setTimeout(()=>{if(!ED)rende
 const imgPending=new Set();
 function wantImages(){
   if(!FB.ok)return;
-  const ids=[...S.teams.map(t=>t.logo),S.meta.banner,S.meta.posterBg].filter(logoOK);
+  const gal=/^#media/.test(location.hash)?S.photos.slice(0,UI.rasmN||12).map(p=>p.th):[];
+  const ids=[...S.teams.map(t=>t.logo),S.meta.banner,S.meta.posterBg,...gal].filter(logoOK);
   ids.forEach(id=>{
     if(IMGC[id]||imgPending.has(id))return;imgPending.add(id);
     let c=null;try{c=localStorage.getItem('img:'+id)}catch(e){}
@@ -1517,6 +1633,7 @@ function initFirebase(){
   try{firebase.initializeApp(cfg);FB.db=firebase.firestore();FB.auth=firebase.auth();FB.ok=true}catch(e){console.error(e);return}
   FB.auth.onAuthStateChanged(u=>{FB.user=u;isAdmin=!!u;wantImages();render(true)});
   FB.db.doc('league/main').onSnapshot(applyRemote,(err)=>{console.error(err)});
+  initVisits();
 }
 ACT['db-seed']=async()=>{
   if(!FB.ok||!FB.user)return;
