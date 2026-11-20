@@ -430,6 +430,14 @@ dialog.lb{width:min(980px,96vw);background:#0b0e13;color:#fff;border:0}
 .lb .rxc{background:#222a36;color:#e6ebf3}
 @media(prefers-reduced-motion:reduce){.rx.open .rxpick{animation:none}.rxe{transition:none}}
 
+/* sahifalar orqa foni */
+:root{--pg-ov:rgba(232,234,238,.8)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--pg-ov:rgba(14,18,23,.84)}}
+:root[data-theme="dark"]{--pg-ov:rgba(14,18,23,.84)}
+.pgbg{position:fixed;inset:0;z-index:-1;background-size:cover;background-position:center;background-repeat:no-repeat;pointer-events:none}
+body.has-pgbg{background:transparent}
+.upl{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+
 .linkbtn{background:none;border:0;padding:0;color:var(--ink-2);font:inherit;font-weight:600;text-decoration:underline;cursor:pointer}
 .fauth{color:var(--ink-3)}
 </style>
@@ -981,6 +989,7 @@ function aSettings(){
   const fld=(n,l,v,t,h)=>`<div class="fld"><label for="s-${n}">${l}</label><input id="s-${n}" name="${n}" type="${t||'text'}" value="${esc(v)}">${h?`<span class="hint">${h}</span>`:''}</div>`;
   return `<div class="panel" style="padding:16px 18px" id="setform"><div class="fgrid">${fld('platform','Platforma nomi',S.meta.platform||'')}${fld('name','Musobaqa nomi',S.meta.name)}${fld('season','Yil / mavsum',S.meta.season)}${fld('venue','Standart maydon',S.meta.venue||'','text','Yangi o‘yinlarga avtomatik qo‘yiladi')}${fld('footer','Sayt pastidagi yozuv',S.meta.footer!==undefined?S.meta.footer:'Suyun_bek 2026')}
   <div class="fld"><label for="s-script">Sayt yozuvi (boshlang‘ich)</label><select id="s-script" name="script"><option value="lat" ${S.meta.script!=='cyr'?'selected':''}>Lotin</option><option value="cyr" ${S.meta.script==='cyr'?'selected':''}>Kirill</option></select><span class="hint">Tashrif buyuruvchi yozuvni yuqoridagi tugma bilan o‘zgartira oladi.</span></div>
+  <div class="fld"><label for="s-pgbg">Sahifalar orqa foni</label><select id="s-pgbg" name="pgbg"><option value="1" ${S.meta.pageBgOff?'':'selected'}>Yoqilgan</option><option value="0" ${S.meta.pageBgOff?'selected':''}>O‘chirilgan</option></select></div>
   <div class="fld"><label for="s-translit">Kirill rejimida nomlar</label><select id="s-translit" name="translit"><option value="1" ${S.meta.translit?'selected':''}>Jamoa va o‘yinchi nomlari ham kirillga o‘giriladi</option><option value="0" ${S.meta.translit?'':'selected'}>Nomlar kiritilganidek qoladi</option></select></div>
   ${fld('win','G‘alaba uchun ochko',R.win,'number')}${fld('draw','Durang uchun ochko',R.draw,'number')}${fld('loss','Mag‘lubiyat uchun ochko',R.loss,'number')}
   ${fld('techw','Texnik mag‘lubiyat: g‘olib goli',R.tech[0],'number')}${fld('techl','Texnik mag‘lubiyat: mag‘lub goli',R.tech[1],'number')}
@@ -1005,7 +1014,7 @@ function aShare(){
   ${fld('telegram','Telegram kanal',S.meta.telegram,'Masalan: https://t.me/kanal_nomi')}${fld('instagram','Instagram sahifa',S.meta.instagram,'Masalan: https://instagram.com/sahifa_nomi')}${fld('youtube','YouTube kanal',S.meta.youtube,'Masalan: https://youtube.com/@kanal_nomi')}${fld('siteUrl','Saytning havolasi',S.meta.siteUrl,'Telegram va Instagram uchun matnga qo‘shiladi. Shu havolani Instagram profilingizga ham qo‘ying.')}
   <button class="btn pri" data-act="soc-save">Havolalarni qo‘llash</button></div>
   <div class="sec-h" style="margin-top:28px"><h2>O‘z rasmlaringiz</h2></div>
-  <div class="panel" style="padding:16px 18px">${(FB.ok&&FB.user)?`<div class="upl"><div><b>Rasm foni</b><p class="sub">Saytning bosh sahifasi va ijtimoiy tarmoq rasmlarining orqa foni bo‘ladi (masalan, stadion surati).</p><div class="logo-row">${(logoOK(S.meta.posterBg)&&blobSrc(S.meta.posterBg))?`<img class="thumb" src="${esc(blobSrc(S.meta.posterBg))}" alt="">`:''}<input type="file" accept="image/*" data-upl="posterBg" aria-label="Fon rasmini tanlang">${logoOK(S.meta.posterBg)?`<button class="btn danger sm" data-act="upl-del" data-k="posterBg">Olib tashlash</button>`:''}</div></div>
+  <div class="panel" style="padding:16px 18px">${(FB.ok&&FB.user)?`<div class="upl"><div><b>Sahifalar orqa foni</b><p class="sub">Jadval, ishtirokchilar, to‘purarlar va boshqa sahifalar orqasida nozik fon bo‘lib turadi. Yuklamasangiz, «Rasm foni» ishlatiladi.</p><div class="logo-row">${(logoOK(S.meta.pageBg)&&blobSrc(S.meta.pageBg))?`<img class="thumb" src="${esc(blobSrc(S.meta.pageBg))}" alt="">`:''}<input type="file" accept="image/*" data-upl="pageBg" aria-label="Sahifalar orqa fonini tanlang">${logoOK(S.meta.pageBg)?`<button class="btn danger sm" data-act="upl-del" data-k="pageBg">Olib tashlash</button>`:''}</div></div><div><b>Rasm foni</b><p class="sub">Saytning bosh sahifasi va ijtimoiy tarmoq rasmlarining orqa foni bo‘ladi (masalan, stadion surati).</p><div class="logo-row">${(logoOK(S.meta.posterBg)&&blobSrc(S.meta.posterBg))?`<img class="thumb" src="${esc(blobSrc(S.meta.posterBg))}" alt="">`:''}<input type="file" accept="image/*" data-upl="posterBg" aria-label="Fon rasmini tanlang">${logoOK(S.meta.posterBg)?`<button class="btn danger sm" data-act="upl-del" data-k="posterBg">Olib tashlash</button>`:''}</div></div>
   <div><b>Afisha</b><p class="sub">Bosh sahifaning tepasida ko‘rinadi (masalan, tayyor poster).</p><div class="logo-row">${(logoOK(S.meta.banner)&&blobSrc(S.meta.banner))?`<img class="thumb" src="${esc(blobSrc(S.meta.banner))}" alt="">`:''}<input type="file" accept="image/*" data-upl="banner" aria-label="Afisha rasmini tanlang">${logoOK(S.meta.banner)?`<button class="btn danger sm" data-act="upl-del" data-k="banner">Olib tashlash</button>`:''}</div></div></div>`:`<p class="sub" style="margin:0">Rasm yuklash uchun tashkilotchi sifatida tizimga kirgan bo‘lishingiz kerak.</p>`}</div>
   <div class="sec-h" style="margin-top:28px"><h2>Ijtimoiy tarmoq uchun rasm</h2></div>
   <p class="sub" style="margin-top:0">Jadval, natijalar yoki taqvimni tayyor rasm qilib yuklab oling va Instagram yoki Telegramga joylang. Rasm sayt ma’lumotlaridan avtomatik chiziladi.</p>
@@ -1313,6 +1322,14 @@ function saveBar(){
   const can=!!(FB.ok&&FB.user);
   return `<div class="savebar" role="region" aria-label="Saqlash"><span>${can?'Saqlanmagan o‘zgarishlar bor':'O‘zgarishlar saqlanmaydi: avval tizimga kiring'}</span><button class="btn ghost" data-act="discard">Bekor qilish</button><button class="btn" data-act="save" ${publishing||!can?'disabled':''}>${publishing?'Saqlanmoqda…':'Saqlash va e’lon qilish'}</button></div>`;
 }
+const pgbg=document.createElement('div');pgbg.className='pgbg';pgbg.setAttribute('aria-hidden','true');document.body.insertBefore(pgbg,document.body.firstChild);
+let pgbgSrc='';
+function paintPageBg(r){
+  const id=S.meta.pageBg||S.meta.posterBg;
+  const src=(!S.meta.pageBgOff&&logoOK(id)&&!/^(boshqaruv|bayonnoma)$/.test(r.n))?blobSrc(id):'';
+  if(src!==pgbgSrc){pgbgSrc=src;pgbg.style.backgroundImage=src?'linear-gradient(var(--pg-ov),var(--pg-ov)),url("'+src+'")':''}
+  document.body.classList.toggle('has-pgbg',!!src);
+}
 let lastRoute='';
 function render(keepScroll){
   const r=route(),y=window.scrollY;
@@ -1321,6 +1338,7 @@ function render(keepScroll){
   try{body=viewFor(r)}catch(err){console.error(err);body='<div class="panel"><div class="empty"><b>Sahifani ko‘rsatib bo‘lmadi</b>Bosh sahifaga qayting va qayta urinib ko‘ring.</div></div>'}
   app.classList.toggle('dirty',dirty>0);
   app.innerHTML=header(r)+`<main class="wrap" id="main">${body}</main>`+footer()+bnav(r)+saveBar();
+  paintPageBg(r);
   if(script==='cyr')cyrDom(app);
   if(r.n==='media'){wantImages();rxLoad([...S.videos.map(x=>x.id),...S.photos.slice(0,UI.rasmN||12).map(x=>x.id)])}
   document.title=(S.meta.platform?S.meta.platform+' — ':'')+S.meta.name;
@@ -1515,7 +1533,7 @@ ACT['set-save']=()=>{
   const R=[iv('win'),iv('draw'),iv('loss'),iv('techw'),iv('techl'),iv('ybn'),iv('rbn')];
   if(R.some(x=>!(x>=0)))return toast('Ochko va o‘yin sonlari manfiy bo‘lmasligi kerak.');
   const pre=TB_PRESETS.find(p=>p[0]===g('tb'));
-  mutate(()=>{S.meta.name=name;S.meta.platform=g('platform').trim()||S.meta.platform;S.meta.season=g('season').trim()||S.meta.season;S.meta.venue=g('venue').trim();S.meta.script=g('script');S.meta.translit=g('translit')==='1';S.meta.footer=g('footer').trim();
+  mutate(()=>{S.meta.name=name;S.meta.platform=g('platform').trim()||S.meta.platform;S.meta.season=g('season').trim()||S.meta.season;S.meta.venue=g('venue').trim();S.meta.script=g('script');S.meta.translit=g('translit')==='1';S.meta.footer=g('footer').trim();S.meta.pageBgOff=g('pgbg')==='0';
     Object.assign(S.rules,{win:R[0],draw:R[1],loss:R[2],tech:[R[3],R[4]],yellowBan:R[5],redBan:R[6],tiebreak:pre[2]})});
   toast('Sozlamalar qo‘llandi');
 };
@@ -1702,7 +1720,7 @@ app.addEventListener('input',(e)=>{if(e.target.tagName==='SELECT'||e.target.type
 $q('body').addEventListener('change',async(e)=>{
   const u=e.target.dataset&&e.target.dataset.upl;
   if(u){const f=e.target.files&&e.target.files[0];if(!f)return;
-    const id=await uploadImage(f,u==='posterBg'?{max:1600,mime:'image/jpeg',q:.86}:{max:1400,mime:'image/jpeg',q:.88});
+    const id=await uploadImage(f,(u==='posterBg'||u==='pageBg')?{max:1600,mime:'image/jpeg',q:.8}:{max:1400,mime:'image/jpeg',q:.88});
     e.target.value='';if(id){mutate(()=>{S.meta[u]=id});toast('Rasm yuklandi')}return}
   if(e.target.id!=='bkfile')return;
   const f=e.target.files&&e.target.files[0];if(!f)return;
@@ -1719,7 +1737,7 @@ const imgPending=new Set();
 function wantImages(){
   if(!FB.ok)return;
   const gal=/^#media/.test(location.hash)?S.photos.slice(0,UI.rasmN||12).map(p=>p.th):[];
-  const ids=[...S.teams.map(t=>t.logo),S.meta.banner,S.meta.posterBg,...gal].filter(logoOK);
+  const ids=[...S.teams.map(t=>t.logo),S.meta.banner,S.meta.posterBg,S.meta.pageBg,...gal].filter(logoOK);
   ids.forEach(id=>{
     if(IMGC[id]||imgPending.has(id))return;imgPending.add(id);
     let c=null;try{c=localStorage.getItem('img:'+id)}catch(e){}
