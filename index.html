@@ -396,6 +396,9 @@ dialog.lb{width:min(980px,96vw);background:#0b0e13;color:#fff;border:0}
 .lbn .btn{background:#222a36;color:#fff;border-color:#3a4556;min-width:60px;font-size:20px}
 @media(max-width:480px){.pgrid{grid-template-columns:repeat(3,1fr);gap:6px}}
 
+.vcw{display:flex;flex-direction:column;align-items:center;gap:6px}
+.vcn{color:var(--ink-3);font-size:12px}
+
 .linkbtn{background:none;border:0;padding:0;color:var(--ink-2);font:inherit;font-weight:600;text-decoration:underline;cursor:pointer}
 .fauth{color:var(--ink-3)}
 </style>
@@ -866,13 +869,15 @@ function vMedia(){
   return h;
 }
 function visitBox(){
-  if(!(FB.ok&&VIS.ok))return '';
+  if(!(FB.ok&&VIS.ok&&isAdmin))return '';
   const n=(x)=>x==null?'…':fmtN(x);
-  return `<div class="vc" role="group" aria-label="Tashrifchilar"><div class="vch">TASHRIFCHILAR</div><div class="vcr"><span>Jami kirganlar</span><b id="vc-total">${n(VIS.total)}</b></div><div class="vcr"><span>Bir kunda (bugun)</span><b id="vc-day">${n(VIS.day)}</b></div></div>`;
+  const wk=(VIS.prevWeek==null||VIS.day==null)?null:VIS.prevWeek+VIS.day,mo=(VIS.prevMonth==null||VIS.day==null)?null:VIS.prevMonth+VIS.day;
+  const row=(l,id,x)=>`<div class="vcr"><span>${l}</span><b id="${id}">${n(x)}</b></div>`;
+  return `<div class="vcw"><div class="vc" role="group" aria-label="Tashrifchilar"><div class="vch">TASHRIFCHILAR</div>${row('Jami kirganlar','vc-total',VIS.total)}${row('Bir oyda','vc-month',mo)}${row('Bir haftada','vc-week',wk)}${row('Bir kunda (bugun)','vc-day',VIS.day)}</div><small class="vcn">Faqat tashkilotchiga ko‘rinadi</small></div>`;
 }
 function footer(){
   const soc=socialLinks();
-  const auth=FB.ok?(FB.user?`<span class="fauth">Tashkilotchi <button type="button" class="linkbtn" data-act="logout">Chiqish</button></span>`:`<span class="fauth"><button type="button" class="linkbtn" data-act="login">Tashkilotchi uchun kirish</button></span>`):'';
+  const auth=(FB.ok&&FB.user)?`<span class="fauth">Tashkilotchi <button type="button" class="linkbtn" data-act="logout">Chiqish</button></span>`:'';
   const txt=S.meta.footer!==undefined?S.meta.footer:'Suyun_bek 2026';
   const links=(soc.length?`<span class="fsoc">${soc.map(([k,l])=>`<a href="${esc(S.meta[k])}" target="_blank" rel="noopener">${l}</a>`).join('')}</span>`:'')+auth;
   return `<footer class="wrap foot foot2">${visitBox()}${links?`<div class="frow">${links}</div>`:''}<div class="fcopy" data-raw>${esc(txt)}</div></footer>`;
@@ -1179,21 +1184,37 @@ function pCalendar(c,X,x,y,w,h){
 let isAdmin=false,dirty=0,publishing=false,script='lat';
 const FB={ok:false,db:null,auth:null,user:null,rev:0,empty:false};
 /* ---------- Tashrifchilar hisoblagichi ---------- */
-const VIS={total:null,day:null,ok:true};
+const VIS={total:null,day:null,prevWeek:null,prevMonth:null,ok:true};
 const fmtN=(n)=>String(n).replace(/\B(?=(\d{3})+(?!\d))/g,' ');
-function paintVisits(){const a=document.getElementById('vc-total'),b=document.getElementById('vc-day');if(a)a.textContent=VIS.total==null?'…':fmtN(VIS.total);if(b)b.textContent=VIS.day==null?'…':fmtN(VIS.day)}
+function paintVisits(){
+  const set=(id,x)=>{const el=document.getElementById(id);if(el)el.textContent=x==null?'…':fmtN(x)};
+  set('vc-total',VIS.total);set('vc-day',VIS.day);
+  set('vc-week',(VIS.prevWeek==null||VIS.day==null)?null:VIS.prevWeek+VIS.day);
+  set('vc-month',(VIS.prevMonth==null||VIS.day==null)?null:VIS.prevMonth+VIS.day);
+}
+/* hisoblash: har bir brauzer kuniga bir marta (hamma uchun) */
 function initVisits(){
   if(!FB.ok)return;
   const day=todayISO(),key='kfl-v-'+day;
-  const onErr=()=>{if(VIS.ok){VIS.ok=false;render(true)}};
-  FB.db.doc('stats/total').onSnapshot(s=>{VIS.total=s.exists?(+s.data().n||0):0;paintVisits()},onErr);
-  FB.db.doc('stats/day_'+day).onSnapshot(s=>{VIS.day=s.exists?(+s.data().n||0):0;paintVisits()},onErr);
   let done=false;try{done=localStorage.getItem(key)==='1'}catch(e){}
   if(!done){
     const inc=firebase.firestore.FieldValue.increment(1);
     Promise.all([FB.db.doc('stats/total').set({n:inc},{merge:true}),FB.db.doc('stats/day_'+day).set({n:inc},{merge:true})])
       .then(()=>{try{localStorage.setItem(key,'1')}catch(e){}}).catch(()=>{});
   }
+}
+/* ko‘rish: faqat tashkilotchi uchun */
+let visReaders=false;
+function startVisitReaders(){
+  if(visReaders||!FB.ok)return;visReaders=true;
+  const day=todayISO(),onErr=()=>{if(VIS.ok){VIS.ok=false;render(true)}};
+  FB.db.doc('stats/total').onSnapshot(s=>{VIS.total=s.exists?(+s.data().n||0):0;paintVisits()},onErr);
+  FB.db.doc('stats/day_'+day).onSnapshot(s=>{VIS.day=s.exists?(+s.data().n||0):0;paintVisits()},onErr);
+  const ids=[];for(let i=1;i<=29;i++)ids.push(addDays(day,-i));
+  Promise.all(ids.map(d=>FB.db.doc('stats/day_'+d).get().catch(()=>null))).then(sn=>{
+    const v=sn.map(s=>s&&s.exists?(+s.data().n||0):0);
+    VIS.prevWeek=v.slice(0,6).reduce((x,y)=>x+y,0);VIS.prevMonth=v.reduce((x,y)=>x+y,0);paintVisits();
+  });
 }
 const app=document.getElementById('app');
 const store=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){}return null};
@@ -1627,11 +1648,18 @@ function applyRemote(snap){
   if(dirty>0||ED){FB.stale=(d.rev||0)!==FB.rev;return}
   try{const x=normalize(JSON.parse(d.state));delete x.inline;S=x;FB.rev=d.rev||0;reindex();wantImages();render(true)}catch(e){console.error(e)}
 }
+function routeHook(){
+  if(!/^#kirish/.test(location.hash))return;
+  const home=location.pathname+location.search+'#bosh';
+  if(!FB.ok){history.replaceState(null,'',home);render();return}
+  if(FB.user){location.hash='#boshqaruv';return}
+  if(FB.authReady){history.replaceState(null,'',home);render();ACT.login()}
+}
 function initFirebase(){
   const cfg=window.FIREBASE_CONFIG;
   if(!cfg||!cfg.apiKey||/^(YOUR|SIZNING|XXX)/i.test(cfg.apiKey)||!window.firebase)return;
   try{firebase.initializeApp(cfg);FB.db=firebase.firestore();FB.auth=firebase.auth();FB.ok=true}catch(e){console.error(e);return}
-  FB.auth.onAuthStateChanged(u=>{FB.user=u;isAdmin=!!u;wantImages();render(true)});
+  FB.auth.onAuthStateChanged(u=>{FB.user=u;isAdmin=!!u;FB.authReady=true;if(u)startVisitReaders();wantImages();render(true);routeHook()});
   FB.db.doc('league/main').onSnapshot(applyRemote,(err)=>{console.error(err)});
   initVisits();
 }
@@ -1663,7 +1691,7 @@ async function doSave(){
   }
 }
 window.addEventListener('beforeunload',(e)=>{if(dirty){e.preventDefault();e.returnValue=''}});
-window.addEventListener('hashchange',()=>{if(dlg.open&&dlgCfg&&dlgCfg.closeOnNav)dlg.close();render();window.scrollTo(0,0)});
+window.addEventListener('hashchange',()=>{if(dlg.open&&dlgCfg&&dlgCfg.closeOnNav)dlg.close();render();window.scrollTo(0,0);routeHook()});
 /* ---------- Boshlash ---------- */
 render();
 initFirebase();
