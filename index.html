@@ -351,8 +351,8 @@ dialog .df{display:flex;gap:8px;justify-content:flex-end;padding:12px 18px 16px;
 @media(min-width:880px){.grid2e{grid-template-columns:1fr 1fr}}
 .sub-h{font-size:18px;margin:0 0 8px;display:flex;align-items:center;gap:8px}
 .vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
-.vcard{background:var(--surface);border:1px solid var(--rule);border-radius:12px;overflow:hidden}
-.vthumb{position:relative;display:block;aspect-ratio:16/9;background:var(--board);color:var(--on-board)}
+.vcard{background:var(--surface);border:1px solid var(--rule);border-radius:12px;overflow:visible}
+.vthumb{position:relative;display:block;aspect-ratio:16/9;background:var(--board);color:var(--on-board);border-radius:11px 11px 0 0;overflow:hidden}
 .vthumb img{width:100%;height:100%;object-fit:cover;display:block}
 .vph{position:absolute;inset:0;display:grid;place-items:center;font:600 22px var(--f-display);color:var(--on-board-2)}
 .vplay{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:#000a;border:2px solid #fff}
@@ -406,6 +406,29 @@ dialog.lb{width:min(980px,96vw);background:#0b0e13;color:#fff;border:0}
 
 .bnav .bs{display:none}
 @media(max-width:370px){.bnav .bl{display:none}.bnav .bs{display:inline}}
+
+
+/* reaksiyalar */
+.rx{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px}
+.rxbtn{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--rule);background:var(--surface);color:var(--ink);border-radius:999px;padding:5px 12px;font-size:13.5px;font-weight:600;cursor:pointer;min-height:32px;white-space:nowrap}
+.rxbtn:hover{border-color:var(--ink-3)}
+.rxbtn.on{background:var(--blue-soft);border-color:var(--blue)}
+.rxpick{display:none;position:absolute;bottom:calc(100% + 6px);left:0;z-index:30;gap:2px;padding:5px 8px;background:var(--surface);border:1px solid var(--rule);border-radius:999px;box-shadow:0 8px 24px #0004}
+.rx.open .rxpick{display:flex;animation:rxin .14s ease-out}
+@keyframes rxin{from{opacity:0;transform:translateY(6px) scale(.95)}to{opacity:1;transform:none}}
+.rxe{background:none;border:0;padding:4px 6px;font-size:26px;line-height:1;cursor:pointer;border-radius:50%;transition:transform .12s}
+.rxe:hover,.rxe:focus-visible{transform:scale(1.35)}
+.rxs{display:flex;flex-wrap:wrap;gap:4px}
+.rxc{font-size:13px;background:var(--surface-2);border-radius:999px;padding:1px 8px;white-space:nowrap}
+.rxc.me{outline:2px solid var(--blue)}
+.ptile .rx{margin-top:2px;gap:4px}
+.ptile .rxbtn{padding:3px 9px;font-size:12.5px;min-height:28px}
+.lbr{display:flex;justify-content:center;padding:0 4px 8px}
+.lb .rxbtn{background:#222a36;color:#fff;border-color:#3a4556}
+.lb .rxbtn.on{background:#26406e;border-color:#6b8cff}
+.lb .rxpick{background:#1b222d;border-color:#3a4556}
+.lb .rxc{background:#222a36;color:#e6ebf3}
+@media(prefers-reduced-motion:reduce){.rx.open .rxpick{animation:none}.rxe{transition:none}}
 
 .linkbtn{background:none;border:0;padding:0;color:var(--ink-2);font:inherit;font-weight:600;text-decoration:underline;cursor:pointer}
 .fauth{color:var(--ink-3)}
@@ -849,13 +872,20 @@ function vRules(){
 const SOC=[['telegram','Telegram'],['instagram','Instagram'],['youtube','YouTube']];
 const okUrl=(u)=>/^https?:\/\/\S+$/i.test(u||'');
 function socialLinks(){return SOC.filter(([k])=>okUrl(S.meta[k]))}
+const RXS=[['like','👍','Yoqdi'],['love','❤️','Sevdim'],['haha','😂','Kulgili'],['wow','😮','Ajoyib'],['fire','🔥','Zo‘r'],['dislike','👎','Yoqmadi']];
+function rxHTML(id){
+  if(!(FB.ok&&RX.ok))return '';
+  const c=RX.counts[id]||{},mine=rxMine(id),cur=RXS.find(r=>r[0]===mine);
+  const chips=RXS.filter(r=>(+c[r[0]]||0)>0).map(r=>`<span class="rxc${r[0]===mine?' me':''}" title="${r[2]}">${r[1]} ${+c[r[0]]}</span>`).join('');
+  return `<div class="rx" data-id="${id}"><button type="button" class="rxbtn${mine?' on':''}" data-act="rx-open" aria-haspopup="true" aria-expanded="false">${cur?cur[1]+' '+cur[2]:'👍 Yoqdi'}</button><div class="rxpick" role="menu">${RXS.map(r=>`<button type="button" class="rxe" role="menuitem" data-act="rx-set" data-id="${id}" data-k="${r[0]}" title="${r[2]}" aria-label="${r[2]}">${r[1]}</button>`).join('')}</div><span class="rxs">${chips}</span></div>`;
+}
 const VCATS=[['gol','Chiroyli gollar'],['kulgi','Video roliklar']];
 const ytId=(u)=>{const m=/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:[^#]*&)?v=|shorts\/|embed\/|live\/))([\w-]{11})/.exec(u||'');return m?m[1]:''};
 const hostOf=(u)=>{try{const h=new URL(u).hostname.replace(/^www\./,'');return /youtu/.test(h)?'YouTube':/t\.me|telegram/.test(h)?'Telegram':/instagram/.test(h)?'Instagram':/tiktok/.test(h)?'TikTok':h}catch(e){return 'Havola'}};
 function videoCard(x){
   const id=ytId(x.url),host=hostOf(x.url);
   const th=id?`<img src="https://i.ytimg.com/vi/${id}/hqdefault.jpg" alt="" loading="lazy">`:`<span class="vph">${esc(host)}</span>`;
-  return `<div class="vcard"><a class="vthumb" href="${esc(x.url)}" target="_blank" rel="noopener" aria-label="${esc(x.title||'Video')}">${th}<span class="vplay" aria-hidden="true"></span></a><div class="vinfo"><b>${D(x.title||'Video')}</b><small>${esc(host)}${x.date?', '+fmtD(x.date):''}</small>${isAdmin?`<button type="button" class="linkbtn" data-act="vid-del" data-id="${x.id}">O‘chirish</button>`:''}</div></div>`;
+  return `<div class="vcard"><a class="vthumb" href="${esc(x.url)}" target="_blank" rel="noopener" aria-label="${esc(x.title||'Video')}">${th}<span class="vplay" aria-hidden="true"></span></a><div class="vinfo"><b>${D(x.title||'Video')}</b><small>${esc(host)}${x.date?', '+fmtD(x.date):''}</small>${rxHTML(x.id)}${isAdmin?`<button type="button" class="linkbtn" data-act="vid-del" data-id="${x.id}">O‘chirish</button>`:''}</div></div>`;
 }
 function vMedia(){
   const soc=socialLinks(),vids=S.matches.filter(m=>m.video&&okUrl(m.video)).sort(chrono).reverse();
@@ -869,7 +899,7 @@ function vMedia(){
   {
     const ph=S.photos||[],n=Math.min(ph.length,UI.rasmN||12);
     h+=`<div class="sec-h" style="margin-top:28px"><h2>Rasmlar</h2>${isAdmin?`<button type="button" class="btn pri sm" data-act="rasm-add">Rasm qo‘shish</button>`:''}</div>`;
-    h+=ph.length?`<div class="pgrid">${ph.slice(0,n).map((p,i)=>{const src=blobSrc(p.th);return `<div class="ptile"><button type="button" class="pbtn" data-act="rasm-open" data-i="${i}" aria-label="Rasmni katta ko‘rish">${src?`<img src="${esc(src)}" alt="" loading="lazy">`:'<span class="pph"></span>'}</button>${p.title?`<small>${D(p.title)}</small>`:''}${isAdmin?`<button type="button" class="linkbtn" data-act="rasm-del" data-id="${p.id}">O‘chirish</button>`:''}</div>`}).join('')}</div>${ph.length>n?`<p style="text-align:center;margin-top:14px"><button type="button" class="btn sec2" data-act="rasm-more">Yana ko‘rsatish (${ph.length-n})</button></p>`:''}`:`<div class="panel"><div class="empty">Rasmlar tez orada qo‘shiladi.</div></div>`;
+    h+=ph.length?`<div class="pgrid">${ph.slice(0,n).map((p,i)=>{const src=blobSrc(p.th);return `<div class="ptile"><button type="button" class="pbtn" data-act="rasm-open" data-i="${i}" aria-label="Rasmni katta ko‘rish">${src?`<img src="${esc(src)}" alt="" loading="lazy">`:'<span class="pph"></span>'}</button>${rxHTML(p.id)}${p.title?`<small>${D(p.title)}</small>`:''}${isAdmin?`<button type="button" class="linkbtn" data-act="rasm-del" data-id="${p.id}">O‘chirish</button>`:''}</div>`}).join('')}</div>${ph.length>n?`<p style="text-align:center;margin-top:14px"><button type="button" class="btn sec2" data-act="rasm-more">Yana ko‘rsatish (${ph.length-n})</button></p>`:''}`:`<div class="panel"><div class="empty">Rasmlar tez orada qo‘shiladi.</div></div>`;
   }
   if(vids.length){
     h+=`<div class="sec-h" style="margin-top:28px"><h2>O‘yin videolari</h2></div><div class="panel mlist">${vids.map(m=>{const H=team(m.home),A=team(m.away);return `<a class="mrow" href="${esc(m.video)}" target="_blank" rel="noopener"><span class="mh"><bdi>${esc(H.name)}</bdi>${crest(H)}</span><span class="sc pend">Video</span><span class="ma">${crest(A)}<bdi>${esc(A.name)}</bdi></span><span class="mmeta"><span>${m.round}-tur</span>${m.date?`<span>${fmtD(m.date)}</span>`:''}</span></a>`}).join('')}</div>`;
@@ -1192,6 +1222,26 @@ function pCalendar(c,X,x,y,w,h){
 let isAdmin=false,dirty=0,publishing=false,script='lat';
 const FB={ok:false,db:null,auth:null,user:null,rev:0,empty:false};
 /* ---------- Tashrifchilar hisoblagichi ---------- */
+/* ---------- Reaksiyalar (Yoqdi va emotsiyalar) ---------- */
+const RX={ok:true,counts:{},mine:{},loading:new Set(),busy:new Set()};
+const rxStoreKey=(id)=>'kfl-rx-'+id;
+function rxMine(id){if(id in RX.mine)return RX.mine[id];let v='';try{v=localStorage.getItem(rxStoreKey(id))||''}catch(e){}RX.mine[id]=v;return v}
+function refreshRx(id){
+  if(!RX.ok)return;
+  document.querySelectorAll('.rx[data-id="'+id+'"]').forEach(el=>{
+    const was=el.classList.contains('open'),t=document.createElement('div');t.innerHTML=rxHTML(id);const n=t.firstElementChild;if(!n)return;
+    if(was)n.classList.add('open');el.replaceWith(n);if(script==='cyr')cyrDom(n);
+  });
+}
+function rxLoad(ids){
+  if(!(FB.ok&&RX.ok))return;
+  ids.filter(id=>id&&!(id in RX.counts)&&!RX.loading.has(id)).forEach(id=>{
+    RX.loading.add(id);
+    FB.db.doc('reacts/'+id).get().then(s=>{RX.counts[id]=s.exists?s.data():{}})
+      .catch(e=>{if(e&&e.code==='permission-denied'&&RX.ok){RX.ok=false;render(true)}})
+      .then(()=>{RX.loading.delete(id);refreshRx(id)});
+  });
+}
 const VIS={total:null,day:null,prevWeek:null,prevMonth:null,ok:true};
 const fmtN=(n)=>String(n).replace(/\B(?=(\d{3})+(?!\d))/g,' ');
 function paintVisits(){
@@ -1272,7 +1322,7 @@ function render(keepScroll){
   app.classList.toggle('dirty',dirty>0);
   app.innerHTML=header(r)+`<main class="wrap" id="main">${body}</main>`+footer()+bnav(r)+saveBar();
   if(script==='cyr')cyrDom(app);
-  if(r.n==='media')wantImages();
+  if(r.n==='media'){wantImages();rxLoad([...S.videos.map(x=>x.id),...S.photos.slice(0,UI.rasmN||12).map(x=>x.id)])}
   document.title=(S.meta.platform?S.meta.platform+' — ':'')+S.meta.name;
   document.documentElement.lang=script==='cyr'?'uz-Cyrl':'uz';
   if(keepScroll)window.scrollTo(0,y);
@@ -1537,13 +1587,45 @@ function openPhoto(i){
   const ph=S.photos;if(!ph.length)return;
   lbI=((i%ph.length)+ph.length)%ph.length;const p=ph[lbI];
   dlgCfg={onSubmit(){},closeOnNav:true};dlg.className='lb';
-  dlg.innerHTML=`<div class="lbx"><div class="lbimgw"><img id="lbimg" alt="" src="${esc(blobSrc(p.th))}"></div><div class="lbc"><span>${p.title?D(p.title):''}</span><b>${lbI+1} / ${ph.length}</b></div><div class="lbn"><button type="button" class="btn sec2" data-act="rasm-nav" data-d="-1" aria-label="Oldingi">‹</button><button type="button" class="btn sec2" data-d="cancel">Yopish</button><button type="button" class="btn sec2" data-act="rasm-nav" data-d="1" aria-label="Keyingi">›</button></div></div>`;
+  dlg.innerHTML=`<div class="lbx"><div class="lbimgw"><img id="lbimg" alt="" src="${esc(blobSrc(p.th))}"></div><div class="lbc"><span>${p.title?D(p.title):''}</span><b>${lbI+1} / ${ph.length}</b></div><div class="lbr">${rxHTML(p.id)}</div><div class="lbn"><button type="button" class="btn sec2" data-act="rasm-nav" data-d="-1" aria-label="Oldingi">‹</button><button type="button" class="btn sec2" data-d="cancel">Yopish</button><button type="button" class="btn sec2" data-act="rasm-nav" data-d="1" aria-label="Keyingi">›</button></div></div>`;
   if(script==='cyr')cyrDom(dlg);
   if(!dlg.open)dlg.showModal();
+  rxLoad([p.id]);
   loadFull(p.full,(src)=>{const im=document.getElementById('lbimg');if(im&&ph[lbI]===p)im.src=src});
 }
 ACT['rasm-open']=(el)=>openPhoto(+el.dataset.i);
 ACT['rasm-nav']=(el)=>openPhoto(lbI+(+el.dataset.d));
+/* reaksiyalar */
+ACT['rx-open']=(el)=>{
+  const rx=el.closest('.rx'),was=rx.classList.contains('open');
+  document.querySelectorAll('.rx.open').forEach(x=>x.classList.remove('open'));
+  if(was)return;
+  rx.classList.add('open');
+  const p=rx.querySelector('.rxpick');p.style.left='0px';
+  const r=p.getBoundingClientRect(),W=window.innerWidth;let dx=0;
+  if(r.right>W-8)dx=W-8-r.right;if(r.left+dx<8)dx=8-r.left;p.style.left=dx+'px';
+  el.setAttribute('aria-expanded','true');
+};
+ACT['rx-set']=async(el)=>{
+  const id=el.dataset.id,k=el.dataset.k,old=rxMine(id);
+  document.querySelectorAll('.rx.open').forEach(x=>x.classList.remove('open'));
+  if(!FB.ok||!RX.ok||RX.busy.has(id))return;
+  RX.busy.add(id);
+  const nk=old===k?'':k,inc=(n)=>firebase.firestore.FieldValue.increment(n),upd={};
+  if(nk)upd[nk]=inc(1);if(old)upd[old]=inc(-1);
+  const c=RX.counts[id]=Object.assign({},RX.counts[id]||{});
+  if(nk)c[nk]=(+c[nk]||0)+1;if(old)c[old]=Math.max(0,(+c[old]||0)-1);
+  RX.mine[id]=nk;try{localStorage.setItem(rxStoreKey(id),nk)}catch(e){}
+  refreshRx(id);
+  try{await FB.db.doc('reacts/'+id).set(upd,{merge:true})}
+  catch(e){
+    RX.mine[id]=old;try{localStorage.setItem(rxStoreKey(id),old)}catch(_){}
+    const c2=RX.counts[id];if(nk)c2[nk]=Math.max(0,(+c2[nk]||1)-1);if(old)c2[old]=(+c2[old]||0)+1;
+    refreshRx(id);toast(e&&e.code==='permission-denied'?'Baholash hozircha ishlamayapti.':'Baholab bo‘lmadi. Qayta urinib ko‘ring.');
+  }
+  RX.busy.delete(id);
+};
+document.addEventListener('click',(e)=>{if(!e.target.closest('.rx'))document.querySelectorAll('.rx.open').forEach(x=>x.classList.remove('open'))});
 /* videolar */
 ACT['vid-add']=(el)=>openForm({title:'Video qo‘shish',fields:[
   {n:'cat',l:'Bo‘lim',t:'select',opts:VCATS.map(([v,l])=>({v,l})),v:(el&&el.dataset&&el.dataset.cat)||'gol',full:1},
